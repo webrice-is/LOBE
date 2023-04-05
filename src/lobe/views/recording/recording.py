@@ -1,30 +1,29 @@
-from functools import wraps
-import traceback
 import json
 import os
+import traceback
+from functools import wraps
 
 from flask import (
     Blueprint,
-    redirect,
-    url_for,
-    request,
-    render_template,
-    flash,
     Response,
-    send_from_directory,
+    flash,
     jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
 )
 from flask import current_app as app
 from flask_security import current_user, login_required, roles_accepted
-
-from lobe.models import Collection, Recording, User, Token, db, Session, PrioritySession
+from lobe.db import delete_recording_db, resolve_order, save_recording_session
+from lobe.models import Collection, PrioritySession, Recording, Token, User, db
 from lobe.tools.analyze import (
     find_segment,
     load_sample,
     signal_is_too_high,
     signal_is_too_low,
 )
-from lobe.db import resolve_order, delete_recording_db, save_recording_session
 
 recording = Blueprint(
     "recording",
@@ -177,7 +176,7 @@ def record_session(collection_id):
             Token.query.filter(
                 Token.collection_id == collection_id,
                 Token.id.notin_(Recording.query.filter(Recording.user_id == user_id).values(Recording.token_id)),
-                Token.marked_as_bad != True,
+                Token.marked_as_bad is not True,
             )
             .order_by(collection.get_sortby_function())
             .limit(collection.configuration.session_sz)
@@ -187,7 +186,7 @@ def record_session(collection_id):
             Token.query.filter(
                 Token.collection_id == collection_id,
                 Token.num_recordings == 0,
-                Token.marked_as_bad != True,
+                Token.marked_as_bad is not True,
             )
             .order_by(collection.get_sortby_function())
             .limit(collection.configuration.session_sz)

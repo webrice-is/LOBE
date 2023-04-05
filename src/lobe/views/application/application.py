@@ -1,13 +1,14 @@
 import uuid
 
-from flask import Blueprint, redirect, url_for, request, render_template, flash
+from flask import Blueprint
 from flask import current_app as app
+from flask import flash, redirect, render_template, request, url_for
 from flask_security import login_required, roles_accepted
 from sqlalchemy.exc import IntegrityError
 
-from lobe.models import Application, Posting, Recording, Token, db, User
-from lobe.db import resolve_order, insert_collection
-from lobe.forms import PostingForm, ApplicationForm, CollectionForm
+from lobe.db import insert_collection, resolve_order
+from lobe.forms import ApplicationForm, CollectionForm, PostingForm
+from lobe.models import Application, Posting, Recording, Token, User, db
 
 application = Blueprint("application", __name__, template_folder="templates")
 
@@ -80,7 +81,7 @@ def postings():
     )
 
     applications = []
-    for posting in postings.filter(Posting.dev != True):
+    for posting in postings.filter(Posting.dev is not True):
         applications.extend(posting.unique_with_recordings())
     info = Posting.statistics_for_applications(applications)
 

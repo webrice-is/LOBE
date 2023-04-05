@@ -1,29 +1,27 @@
 import json
 import random
-import numpy as np
 import traceback
-
 from datetime import date, datetime
 
-from flask import redirect, url_for, request, render_template, flash, Blueprint
+import numpy as np
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_security import current_user, login_required, roles_accepted
-
-from lobe.models import (
-    User,
-    VerifierIcon,
-    VerifierFont,
-    VerifierTitle,
-    VerifierQuote,
-    VerifierProgression,
-    db,
-)
 from lobe.forms import (
     DailySpinForm,
-    VerifierIconForm,
-    VerifierTitleForm,
-    VerifierQuoteForm,
     VerifierFontForm,
+    VerifierIconForm,
+    VerifierQuoteForm,
+    VerifierTitleForm,
+)
+from lobe.models import (
+    User,
+    VerifierFont,
+    VerifierIcon,
+    VerifierProgression,
+    VerifierQuote,
+    VerifierTitle,
+    db,
 )
 
 shop = Blueprint(
@@ -51,10 +49,10 @@ def lobe_shop():
         quotes = quotes.all()
         fonts = fonts.all()
     else:
-        icons = icons.filter(VerifierIcon.for_sale == True).all()
-        titles = titles.filter(VerifierTitle.for_sale == True).all()
-        quotes = quotes.filter(VerifierQuote.for_sale == True).all()
-        fonts = fonts.filter(VerifierFont.for_sale == True).all()
+        icons = icons.filter(VerifierIcon.for_sale is True).all()
+        titles = titles.filter(VerifierTitle.for_sale is True).all()
+        quotes = quotes.filter(VerifierQuote.for_sale is True).all()
+        fonts = fonts.filter(VerifierFont.for_sale is True).all()
 
     loot_box_message = request.args.get("messages", None)
     loot_box_items = []

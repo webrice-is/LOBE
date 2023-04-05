@@ -1,37 +1,32 @@
+import datetime
 import json
 import random
-import re
-import datetime
-from datetime import datetime, timedelta
-
 import traceback
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import (
-    render_template,
-    flash,
-    request,
-    redirect,
-    url_for,
-    Response,
     Blueprint,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
 )
 from flask import current_app as app
 from flask_security import current_user, login_required, roles_accepted
-
-from sqlalchemy import and_, or_
-
-from lobe.db import get_verifiers, activity, insert_trims, resolve_order
-from lobe.forms import DailySpinForm, SessionVerifyForm, DeleteVerificationForm
+from lobe.db import activity, get_verifiers, insert_trims, resolve_order
+from lobe.forms import DailySpinForm, DeleteVerificationForm, SessionVerifyForm
 from lobe.models import (
+    Collection,
     PrioritySession,
-    Verification,
+    Recording,
     Session,
     User,
-    Recording,
+    Verification,
     db,
-    Collection,
 )
+from sqlalchemy import and_, or_
 
 verification = Blueprint("verification", __name__, template_folder="templates")
 
@@ -67,13 +62,13 @@ def verify_queue():
     else:
         # Has the user already started a session?
         unverified_sessions = Session.query.join(Session.collection).filter(
-            Session.is_verified == False,
-            Collection.is_dev == False,
-            Collection.verify == True,
+            Session.is_verified is False,
+            Collection.is_dev is False,
+            Collection.verify is True,
         )
         if unverified_sessions.count() > 0:
             available_sessions = unverified_sessions.filter(
-                or_(Session.verified_by == None, Session.verified_by == current_user.id)
+                or_(Session.verified_by is None, Session.verified_by == current_user.id)
             ).order_by(Session.verified_by)
 
             if available_sessions.count() > 0:
@@ -89,17 +84,17 @@ def verify_queue():
             # check if we can secondarily verify any sesssions
             secondarily_unverified_sessions = Session.query.join(Session.collection).filter(
                 and_(
-                    Session.is_secondarily_verified == False,
+                    Session.is_secondarily_verified is False,
                     Session.verified_by != current_user.id,
                 ),
-                Collection.is_dev == False,
-                Collection.verify == True,
+                Collection.is_dev is False,
+                Collection.verify is True,
             )
 
             if secondarily_unverified_sessions.count() > 0:
                 available_sessions = secondarily_unverified_sessions.filter(
                     or_(
-                        Session.secondarily_verified_by == None,
+                        Session.secondarily_verified_by is None,
                         Session.secondarily_verified_by == current_user.id,
                     )
                 ).order_by(Session.secondarily_verified_by)
@@ -132,7 +127,7 @@ def verify_queue():
 
 def check_priority_session():
     unverified_sessions = PrioritySession.query.filter(
-        and_(PrioritySession.is_verified == False, PrioritySession.is_dev == False)
+        and_(PrioritySession.is_verified is False, PrioritySession.is_dev is False)
     )
     chosen_session = None
     is_secondary = False
@@ -140,7 +135,7 @@ def check_priority_session():
     if unverified_sessions.count() > 0:
         available_sessions = unverified_sessions.filter(
             or_(
-                PrioritySession.verified_by == None,
+                PrioritySession.verified_by is None,
                 PrioritySession.verified_by == current_user.id,
             )
         ).order_by(PrioritySession.verified_by)
@@ -153,14 +148,14 @@ def check_priority_session():
     if not chosen_session:
         unverified_sessions = Session.query.filter(
             and_(
-                Session.is_verified == False,
-                Session.is_dev == False,
-                Session.has_priority == True,
+                Session.is_verified is False,
+                Session.is_dev is False,
+                Session.has_priority is True,
             )
         )
         if unverified_sessions.count() > 0:
             available_sessions = unverified_sessions.filter(
-                or_(Session.verified_by == None, Session.verified_by == current_user.id)
+                or_(Session.verified_by is None, Session.verified_by == current_user.id)
             ).order_by(Session.verified_by)
             if available_sessions.count() > 0:
                 # we have an available session
@@ -304,10 +299,10 @@ def create_verification():
             recordings = Recording.query.filter(Recording.session_id == session.id)
             num_recordings = recordings.count()
             achievements = []
-            if is_secondary and num_recordings == recordings.filter(Recording.is_secondarily_verified == True).count():
+            if is_secondary and num_recordings == recordings.filter(Recording.is_secondarily_verified is True).count():
                 session.is_secondarily_verified = True
                 db.session.commit()
-            if num_recordings == recordings.filter(Recording.is_verified == True).count():
+            if num_recordings == recordings.filter(Recording.is_verified is True).count():
                 session.is_verified = True
                 progression.num_session_verifies += 1
                 progression.lobe_coins += app.config["ECONOMY"]["session"]["coin_reward"]
@@ -523,23 +518,23 @@ def verify_stats():
     verifications_all = verifications.all()
     verify_stats = {
         "total_count": len(verifications_all),
-        "double_verified": verifications.filter(Verification.is_secondary == True).count(),
-        "single_verified": verifications.filter(Verification.is_secondary == False).count(),
+        "double_verified": verifications.filter(Verification.is_secondary is True).count(),
+        "single_verified": verifications.filter(Verification.is_secondary is False).count(),
         "count_past_week": verifications.filter(Verification.created_at >= datetime.now() - timedelta(days=7)).count(),
         "count_good": verifications.filter(
             and_(
-                Verification.volume_is_low == False,
-                Verification.volume_is_high == False,
-                Verification.recording_has_wrong_wording == False,
-                Verification.recording_has_glitch == False,
+                Verification.volume_is_low is False,
+                Verification.volume_is_high is False,
+                Verification.recording_has_wrong_wording is False,
+                Verification.recording_has_glitch is False,
             )
         ).count(),
         "count_bad": verifications.filter(
             or_(
-                Verification.volume_is_low == True,
-                Verification.volume_is_high == True,
-                Verification.recording_has_wrong_wording == True,
-                Verification.recording_has_glitch == True,
+                Verification.volume_is_low is True,
+                Verification.volume_is_high is True,
+                Verification.recording_has_wrong_wording is True,
+                Verification.recording_has_glitch is True,
             )
         ).count(),
     }

@@ -1,14 +1,11 @@
 import traceback
 
-from flask import redirect, url_for, request, render_template, flash, Blueprint
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask import current_app as app
-from flask_security import login_required, roles_accepted, current_user
-from numpy.core.records import record
-
-
-from lobe.db import resolve_order, delete_session_db
-from lobe.models import Recording, Session, db, PrioritySession
+from flask_security import current_user, login_required, roles_accepted
+from lobe.db import delete_session_db, resolve_order
 from lobe.forms import SessionEditForm
+from lobe.models import PrioritySession, Recording, Session, db
 
 session = Blueprint("session", __name__, template_folder="templates")
 

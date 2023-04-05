@@ -2,13 +2,13 @@ import os
 import traceback
 
 from flask import (
-    redirect,
-    url_for,
-    render_template,
-    send_from_directory,
-    flash,
-    request,
     Blueprint,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
 )
 from flask import current_app as app
 from flask_security import current_user, login_required
@@ -46,6 +46,7 @@ def download_manual():
     except Exception as error:
         flash("Error downloading manual", category="danger")
         app.logger.error("Error downloading manual : {}\n{}".format(error, traceback.format_exc()))
+        return redirect(url_for("main.index"))
 
 
 @main.route("/other/test_media_device")
