@@ -1,31 +1,26 @@
 import contextlib
+import json
 import os
+import random
+import subprocess
 import uuid
 import wave
-import json
-import subprocess
-import random
 from collections import Counter, defaultdict
-
-import numpy as np
 from datetime import datetime, timedelta
 
+import numpy as np
 from flask import current_app as app
 from flask import url_for
 from flask_security import RoleMixin, UserMixin
-from flask_sqlalchemy import SQLAlchemy
-
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import relationship
-from werkzeug import secure_filename
-
-from wtforms_components import ColorField
+from werkzeug.utils import secure_filename
 from wtforms import validators
+from wtforms_components import ColorField
 
+from lobe import db
 from lobe.tools.latin_square import balanced_latin_squares
-
-db = SQLAlchemy()
 
 ADMIN_ROLE_ID = 1
 ADMIN_ROLE_NAME = "admin"
@@ -159,7 +154,7 @@ class Collection(BaseModel, db.Model):
     def update_numbers(self):
         tokens = Token.query.filter(Token.collection_id == self.id)
         self.num_tokens = tokens.count()
-        self.num_invalid_tokens = tokens.filter(Token.marked_as_bad == True).count()
+        self.num_invalid_tokens = tokens.filter(Token.marked_as_bad is True).count()
         self.num_recorded_tokens = tokens.filter(Token.num_recordings > 0).count()
 
     def get_meta(self):
@@ -389,8 +384,8 @@ class Token(BaseModel, db.Model):
         original_fname,
         collection_id,
         score: float = -1,
-        pron: str = None,
-        source: str = None,
+        pron: str | None = None,
+        source: str | None = None,
     ):
         self.text = text
         self.original_fname = original_fname
@@ -1824,7 +1819,7 @@ class Mos(BaseModel, db.Model):
 
     @property
     def number_selected(self):
-        return sum(r.selected == True for r in self.mos_objects)
+        return sum(r.selected is True for r in self.mos_objects)
 
     def add_participant(self, user):
         if not self.num_participants:

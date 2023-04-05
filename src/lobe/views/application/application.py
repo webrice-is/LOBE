@@ -1,14 +1,12 @@
 import uuid
 
-from flask import Blueprint
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask import current_app as app
-from flask import flash, redirect, render_template, request, url_for
 from flask_security import login_required, roles_accepted
-from sqlalchemy.exc import IntegrityError
-
-from lobe.db import insert_collection, resolve_order
+from lobe.database_functions import insert_collection, resolve_order
 from lobe.forms import ApplicationForm, CollectionForm, PostingForm
 from lobe.models import Application, Posting, Recording, Token, User, db
+from sqlalchemy.exc import IntegrityError
 
 application = Blueprint("application", __name__, template_folder="templates")
 

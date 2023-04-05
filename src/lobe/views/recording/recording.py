@@ -3,9 +3,9 @@ import os
 import traceback
 from functools import wraps
 
+from flask import Blueprint, Response
+from flask import current_app as app
 from flask import (
-    Blueprint,
-    Response,
     flash,
     jsonify,
     redirect,
@@ -14,9 +14,13 @@ from flask import (
     send_from_directory,
     url_for,
 )
-from flask import current_app as app
 from flask_security import current_user, login_required, roles_accepted
-from lobe.db import delete_recording_db, resolve_order, save_recording_session
+
+from lobe.database_functions import (
+    delete_recording_db,
+    resolve_order,
+    save_recording_session,
+)
 from lobe.models import Collection, PrioritySession, Recording, Token, User, db
 from lobe.tools.analyze import (
     find_segment,

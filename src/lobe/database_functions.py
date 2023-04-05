@@ -1,30 +1,32 @@
+import csv
 import datetime
 import json
 import math
 import os
+import pathlib
 import traceback
+from collections import defaultdict
+
 from flask import current_app as app
-import csv
+from flask import flash
+from flask_security import current_user
 from pydub import AudioSegment
 from pydub.utils import mediainfo
-import pathlib
-from werkzeug import secure_filename
-from collections import defaultdict
-from flask import flash
 from sqlalchemy import func
-from flask_security import current_user
+from werkzeug.utils import secure_filename
+
+from lobe import db
 from lobe.models import (
     Collection,
+    CustomRecording,
+    CustomToken,
+    MosInstance,
+    MosRating,
     Recording,
     Session,
     Token,
     Trim,
     User,
-    db,
-    MosInstance,
-    CustomRecording,
-    CustomToken,
-    MosRating,
     VerifierProgression,
 )
 
@@ -759,7 +761,7 @@ def resolve_order(object, sort_by, order="desc"):
 
 
 def get_verifiers():
-    return [u for u in User.query.filter(User.active == True) if any(r.name == "Greinir" for r in u.roles)]
+    return [u for u in User.query.filter(User.active is True) if any(r.name == "Greinir" for r in u.roles)]
 
 
 def get_admins():
@@ -834,5 +836,7 @@ def activity(model):
     groups = [func.extract(x, model.created_at).label(x) for x in groups]
     q = db.session.query(func.count(model.id).label("count"), *groups).group_by(*groups).order_by(*groups).all()
     x = [(lambda x: f"{int(x.day)}/{int(x.month)}/{int(x.year)}")(el) for el in q]
+    y = [el.count for el in q]
+    return x, y
     y = [el.count for el in q]
     return x, y

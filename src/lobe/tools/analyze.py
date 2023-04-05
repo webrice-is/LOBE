@@ -7,7 +7,7 @@ def load_sample(path: str):
     return y, sr
 
 
-def find_segment(y: np.ndarray, sr: int, top_db: int = 10):
+def find_segment(y: np.ndarray, sr: float, top_db: int = 10):
     """
     Notes:
     * We add a 0.25 sec of padding to the region to avoid cut-offs.

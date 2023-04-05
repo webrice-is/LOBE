@@ -1,41 +1,41 @@
-import os
-import traceback
-import shutil
 import json
+import os
+import shutil
+import traceback
 from zipfile import ZipFile
+
 from flask import (
     Blueprint,
-    redirect,
-    url_for,
-    request,
-    render_template,
-    flash,
-    send_from_directory,
     Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
 )
 from flask import current_app as app
 from flask_security import login_required, roles_accepted
-
-from lobe.models import Collection, Token, User, db
-from lobe.db import (
-    resolve_order,
-    insert_collection,
+from lobe.database_functions import (
     create_tokens,
-    save_uploaded_lobe_collection,
+    insert_collection,
+    resolve_order,
     save_uploaded_collection,
+    save_uploaded_lobe_collection,
 )
 from lobe.forms import (
-    CollectionForm,
     BulkTokenForm,
-    collection_edit_form,
+    CollectionForm,
     UploadCollectionForm,
+    collection_edit_form,
 )
-from lobe.tools.pagination import ListPagination
 from lobe.managers import (
-    trim_collection_handler,
-    create_collection_zip,
     create_collection_info,
+    create_collection_zip,
+    trim_collection_handler,
 )
+from lobe.models import Collection, Token, User, db
+from lobe.tools.pagination import ListPagination
 
 collection = Blueprint("collection", __name__, template_folder="templates")
 

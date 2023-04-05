@@ -1,9 +1,11 @@
 import traceback
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint
 from flask import current_app as app
+from flask import flash, redirect, render_template, request, url_for
 from flask_security import current_user, login_required, roles_accepted
-from lobe.db import delete_session_db, resolve_order
+
+from lobe.database_functions import delete_session_db, resolve_order
 from lobe.forms import SessionEditForm
 from lobe.models import PrioritySession, Recording, Session, db
 

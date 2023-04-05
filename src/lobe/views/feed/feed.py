@@ -2,8 +2,9 @@ import re
 import traceback
 
 import requests
+from flask import Blueprint
+from flask import current_app as app
 from flask import (
-    Blueprint,
     flash,
     redirect,
     render_template,
@@ -11,18 +12,11 @@ from flask import (
     send_from_directory,
     url_for,
 )
-from flask import current_app as app
 from flask_security import current_user, login_required, roles_accepted
-from lobe.db import get_verifiers_and_admins, resolve_order
-from lobe.forms import (
-    PostLinkForm,
-)
-from lobe.models import (
-    PostAward,
-    Recording,
-    SocialPost,
-    db,
-)
+
+from lobe.database_functions import get_verifiers_and_admins, resolve_order
+from lobe.forms import PostLinkForm
+from lobe.models import PostAward, Recording, SocialPost, db
 
 feed = Blueprint(
     "feed",

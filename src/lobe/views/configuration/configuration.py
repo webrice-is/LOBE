@@ -1,12 +1,11 @@
 import traceback
 
-from flask import Blueprint, redirect, url_for, request, render_template, flash
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask import current_app as app
 from flask_security import login_required, roles_accepted
-
-from lobe.db import resolve_order
-from lobe.models import Configuration, Collection, db
+from lobe.database_functions import resolve_order
 from lobe.forms import ConfigurationForm
+from lobe.models import Collection, Configuration, db
 
 configuration = Blueprint("configuration", __name__, template_folder="templates")
 
@@ -101,4 +100,5 @@ def delete_conf(id):
         flash(f"{name} var eytt", category="success")
     except Exception as error:
         app.logger.error("Error deleting a configuration : {}\n{}".format(error, traceback.format_exc()))
+    return redirect(url_for("configuration.conf_list"))
     return redirect(url_for("configuration.conf_list"))

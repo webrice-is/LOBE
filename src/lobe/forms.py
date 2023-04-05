@@ -1,42 +1,37 @@
 import os
 
 from flask_security.forms import LoginForm, RegisterForm
-from flask_wtf import RecaptchaField, FlaskForm
-from flask_wtf.file import FileField, FileAllowed, FileRequired
+from flask_wtf import FlaskForm, RecaptchaField
+from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
+    BooleanField,
+    EmailField,
+    FloatField,
     Form,
     HiddenField,
+    IntegerField,
     MultipleFileField,
-    SelectMultipleField,
     SelectField,
-    TextField,
-    BooleanField,
-    validators,
-    ValidationError,
-    FloatField,
-    widgets,
+    SelectMultipleField,
     StringField,
+    ValidationError,
+    widgets,
 )
-
-from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.ext.sqlalchemy.orm import model_form
-from wtforms.fields.html5 import EmailField
-from wtforms.validators import InputRequired
+from wtforms.validators import InputRequired, NumberRange
 from wtforms_alchemy import ModelForm
-from wtforms_components import IntegerField
+from wtforms_alchemy.fields import QuerySelectField
 
 from lobe.models import (
     Configuration,
+    Mos,
+    MosInstance,
+    Posting,
     Role,
     User,
+    VerifierFont,
     VerifierIcon,
     VerifierQuote,
     VerifierTitle,
-    VerifierFont,
-    Posting,
-    Mos,
-    MosInstance,
-    db,
 )
 
 
@@ -53,7 +48,7 @@ class MultiCheckboxField(SelectMultipleField):
 
 
 class DailySpinForm(Form):
-    prize_type = HiddenField("type", validators=[validators.required()])
+    prize_type = HiddenField("type", validators=[InputRequired()])
     prize_value = HiddenField("value")
 
 
@@ -78,7 +73,7 @@ class VerifierFontForm(ModelForm):
 
 
 class CollectionForm(Form):
-    name = TextField("Nafn", validators=[validators.required()])
+    name = StringField("Nafn", validators=[InputRequired()])
     assigned_user_id = QuerySelectField("Rödd", query_factory=lambda: User.query, get_label="name", allow_blank=True)
     configuration_id = QuerySelectField(
         "Stilling",
@@ -135,7 +130,7 @@ class BulkTokenForm(Form):
     files = MultipleFileField(
         "Textaskjöl",
         description="Veljið eitt eða fleiri textaskjöl.",
-        validators=[validators.required()],
+        validators=[InputRequired()],
     )
 
 
@@ -150,15 +145,15 @@ class ExtendedLoginForm(LoginForm):
 
 
 class ExtendedRegisterForm(RegisterForm):
-    name = TextField("Nafn", [validators.required()])
+    name = StringField("Nafn", [InputRequired()])
     sex = SelectField(
         "Kyn",
-        [validators.required()],
+        [InputRequired()],
         choices=[("Kona", "Kona"), ("Karl", "Karl"), ("Annað", "Annað")],
     )
     dialect = SelectField(
         "Framburður",
-        [validators.required()],
+        [InputRequired()],
         choices=[
             ("Linmæli", "Linmæli"),
             ("Harðmæli", "Harðmæli"),
@@ -171,20 +166,20 @@ class ExtendedRegisterForm(RegisterForm):
             ("Skaftfellskur einhljóðaframburður", "Skaftfellskur einhljóðaframburður"),
         ],
     )
-    age = IntegerField("Aldur", [validators.required(), validators.NumberRange(min=18, max=100)])
+    age = IntegerField("Aldur", [InputRequired(), NumberRange(min=18, max=100)])
     is_admin = BooleanField("Notandi er vefstjóri")
 
 
 class VerifierRegisterForm(RegisterForm):
-    name = TextField("Nafn", [validators.required()])
+    name = StringField("Nafn", [InputRequired()])
 
 
 class UserEditForm(Form):
-    name = TextField("Nafn")
-    email = TextField("Netfang")
+    name = StringField("Nafn")
+    email = StringField("Netfang")
     dialect = SelectField(
         "Framburður",
-        [validators.required()],
+        [InputRequired()],
         choices=[
             ("Linmæli", "Linmæli"),
             ("Harðmæli", "Harðmæli"),
@@ -199,7 +194,7 @@ class UserEditForm(Form):
     )
     sex = SelectField(
         "Kyn",
-        [validators.required()],
+        [InputRequired()],
         choices=[("Kona", "Kona"), ("Karl", "Karl"), ("Annað", "Annað")],
     )
     age = IntegerField("Aldur")
@@ -211,7 +206,7 @@ class SessionEditForm(Form):
         "Stjórnandi",
         query_factory=lambda: User.query,
         get_label="name",
-        validators=[validators.required()],
+        validators=[InputRequired()],
     )
 
     def validate_manager_id(self, field):
@@ -259,6 +254,8 @@ class SessionVerifyForm(Form):
 
     def validate_quality(self, field):
         data = self.quality.data
+        if data is None:
+            raise ValidationError("Gæði er nauðsynlegt")
         if self.LOW in data and self.HIGH in data:
             raise ValidationError("Upptakan getur ekki verið bæði of lág og of há")
         if self.OK in data and len(data) > 1:
@@ -266,10 +263,10 @@ class SessionVerifyForm(Form):
 
 
 class ConfigurationForm(Form):
-    name = TextField("Nafn stillinga")
+    name = StringField("Nafn stillinga")
     session_sz = IntegerField(
         "Fjöldi setninga í lotu",
-        [validators.required(), validators.NumberRange(min=1, max=100)],
+        [InputRequired(), NumberRange(min=1, max=100)],
         default=50,
     )
     live_transcribe = BooleanField("Nota talgreini", description="Getur haft áhrif á hljóðgæði")
@@ -305,7 +302,7 @@ class ConfigurationForm(Form):
     audio_codec = SelectField("Hljóðmerkjamál", choices=[("pcm", "PCM")])
     trim_threshold = FloatField(
         "lágmarkshljóð (dB)",
-        [validators.NumberRange(min=0)],
+        [NumberRange(min=0)],
         default=40,
         description="Þröskuldur sem markar þögn, því lægri því meira telst "
         + "sem þögn. Þetta kemur bara af notum þegar sjálfvirk "
@@ -313,7 +310,7 @@ class ConfigurationForm(Form):
     )
     too_low_threshold = FloatField(
         "Lágmarkshljóð fyrir gæði (dB)",
-        [validators.NumberRange(min=-100, max=0)],
+        [NumberRange(min=-100, max=0)],
         default=-15,
         description="Ef hljóðrófsrit upptöku fer aldrei yfir þennan "
         + "þröskuld þá mun gæðastjórnunarkerfi merkja þessa "
@@ -322,7 +319,7 @@ class ConfigurationForm(Form):
     )
     too_high_threshold = FloatField(
         "Hámarkshljóð fyrir gæði (dB)",
-        [validators.NumberRange(min=-100, max=0)],
+        [NumberRange(min=-100, max=0)],
         default=-4.5,
         description="Ef hljóðrófsrit upptöku fer yfir þennan þröskuld "
         + "ákveðin fjölda af römmum í röð "
@@ -332,7 +329,7 @@ class ConfigurationForm(Form):
     )
     too_high_frames = IntegerField(
         "Fjöldi of hárra ramma",
-        [validators.NumberRange(min=0, max=100)],
+        [NumberRange(min=0, max=100)],
         default=10,
         description="Segir til um hversu margir rammar i röð þurfa að "
         + "vera fyrir ofan gæðastjórnunarþröskuldinn "
@@ -343,45 +340,61 @@ class ConfigurationForm(Form):
     has_video = BooleanField("Myndbandssöfnun", default=False)
     video_w = IntegerField(
         "Vídd myndbands í pixlum",
-        [validators.NumberRange(min=0)],
+        [NumberRange(min=0)],
         default=1280,
         description="Einungis notað ef söfnun er myndbandssöfnun.",
     )
     video_h = IntegerField(
         "Hæð myndbands í pixlum",
-        [validators.NumberRange(min=0)],
+        [NumberRange(min=0)],
         default=720,
         description="Einungis notað ef söfnun er myndbandssöfnun.",
     )
     video_codec = SelectField("Myndmerkjamál", choices=[("vp8", "VP8")])
 
 
-RoleForm = model_form(model=Role, base_class=Form, db_session=db.session)
+# The three form below might not be correct
+# model_form function was used to create them, but is now deprecated
+class RoleForm(Form):
+    class Meta:
+        model = Role
+        exclude = ["id", "users"]
 
 
-PostingForm = model_form(
-    Posting,
-    db_session=db.session,
-    field_args={
-        "name": {"label": "Nafn"},
-        "ad_text": {"label": "Texti auglýsingar", "widget": widgets.TextArea()},
-        "utterances": {"label": "Setningar", "widget": widgets.TextArea()},
-    },
-    exclude=["id", "created_at", "uuid", "collection", "applications"],
-)
+class PostingForm(Form):
+    name = StringField("Nafn", [InputRequired()])
+    ad_text = StringField("Texti auglýsingar", [InputRequired()], widget=widgets.TextArea())
+    utterances = StringField("Setningar", [InputRequired()], widget=widgets.TextArea())
+
+    class Meta:
+        model = Posting
+        exclude = ["id", "created_at", "uuid", "collection", "applications"]
+
+
+class MosDetailForm(Form):
+    question = StringField("Spurning", [InputRequired()])
+    form_text = StringField("Form texti", [InputRequired()], widget=widgets.TextArea())
+    help_text = StringField("Hjálpartexti", [InputRequired()], widget=widgets.TextArea())
+    done_text = StringField("Þakkartexti", [InputRequired()], widget=widgets.TextArea())
+    use_latin_square = BooleanField("Nota latin-square")
+    show_text_in_test = BooleanField("Sýna texta við hljóðbút")
+
+    class Meta:
+        model = Mos
+        exclude = ["id", "created_at", "uuid", "collection", "applications"]
 
 
 class ApplicationForm(Form):
-    name = StringField("Nafn", [validators.required()])
+    name = StringField("Nafn", [InputRequired()])
     sex = SelectField(
         "Kyn",
-        [validators.required()],
+        [InputRequired()],
         choices=[("Kona", "Kona"), ("Karl", "Karl"), ("Annað", "Annað")],
     )
-    age = IntegerField("Aldur", [validators.required(), validators.NumberRange(min=10, max=120)])
+    age = IntegerField("Aldur", [InputRequired(), NumberRange(min=10, max=120)])
     voice = SelectField(
         "Rödd",
-        [validators.required()],
+        [InputRequired()],
         choices=[
             ("sopran", "Sópran"),
             ("alt", "Alt"),
@@ -389,7 +402,7 @@ class ApplicationForm(Form):
             ("bassi", "Bassi"),
         ],
     )
-    email = EmailField("Netfang", [validators.required()])
+    email = EmailField("Netfang", [InputRequired()])
     phone = StringField("Sími")
     terms_agreement = BooleanField(
         "Ég samþykki <a href='/tos/' target='_blank'>skilmála" + "og gagnastefnu LVL</a>",
@@ -401,46 +414,22 @@ class MosForm(ModelForm):
     class Meta:
         model = Mos
         exclude = ["uuid"]
-        num_samples = IntegerField("Fjöldi setnimmnga", [validators.required()])
+        num_samples = IntegerField("Fjöldi setnimmnga", [InputRequired()])
 
     def __init__(self, max_available, *args, **kwargs):
         super(MosForm, self).__init__(*args, **kwargs)
         self.max_available = max_available
 
-    def validate_num_samples(form, field):
-        if field.data >= form.max_available or field.data < 0:
+    def validate_num_samples(self, field):
+        if field.data >= self.max_available or field.data < 0:
             raise ValidationError(
-                "Ekki nógu markar upptökur til í safni. Sláðu inn tölu" + "á milli 0 og {}".format(form.max_available)
+                "Ekki nógu markar upptökur til í safni. Sláðu inn tölu" + "á milli 0 og {}".format(self.max_available)
             )
 
 
 class MosSelectAllForm(Form):
     is_synth = HiddenField()
     select = HiddenField()
-
-
-MosDetailForm = model_form(
-    Mos,
-    db_session=db.session,
-    field_args={
-        "question": {
-            "label": "Spurning",
-        },
-        "form_text": {"label": "Form texti", "widget": widgets.TextArea()},
-        "help_text": {"label": "Hjálpartexti", "widget": widgets.TextArea()},
-        "done_text": {"label": "Þakkartexti", "widget": widgets.TextArea()},
-        "use_latin_square": {"label": "Nota latin-square"},
-        "show_text_in_test": {"label": "Sýna texta við hljóðbút"},
-    },
-    only=[
-        "question",
-        "form_text",
-        "help_text",
-        "done_text",
-        "use_latin_square",
-        "show_text_in_test",
-    ],
-)
 
 
 class MosItemSelectionForm(ModelForm):
@@ -450,9 +439,9 @@ class MosItemSelectionForm(ModelForm):
 
 
 class MosTestForm(Form):
-    name = StringField("Nafn", [validators.required()])
-    age = IntegerField("Aldur", [validators.required(), validators.NumberRange(min=10, max=120)])
-    audio_setup = StringField("Hvers konar heyrnatól/hátalara ertu með?", [validators.required()])
+    name = StringField("Nafn", [InputRequired()])
+    age = IntegerField("Aldur", [InputRequired(), NumberRange(min=10, max=120)])
+    audio_setup = StringField("Hvers konar heyrnatól/hátalara ertu með?", [InputRequired()])
 
 
 class UploadCollectionForm(FlaskForm):
@@ -466,7 +455,7 @@ class UploadCollectionForm(FlaskForm):
         description="Hakið við ef uphleðslan er LOBE söfnun" + " á sama formi og LOBE söfnun er hlaðið niður",
         default=False,
     )
-    name = TextField("Nafn", validators=[validators.required()])
+    name = StringField("Nafn", validators=[InputRequired()])
     assigned_user_id = QuerySelectField("Rödd", query_factory=lambda: User.query, get_label="name", allow_blank=True)
     configuration_id = QuerySelectField(
         "Stilling",
@@ -513,7 +502,6 @@ class UploadCollectionForm(FlaskForm):
                 return True
             else:
                 raise ValidationError("Velja verður annað hvort staðlað form" + " Eða LOBE söfnun")
-        raise ValidationError("Velja verður annað hvort staðlað form EÐA LOBE söfnun")
 
     def validate_is_lobe_collection(self, field):
         if field.data:
@@ -526,7 +514,6 @@ class UploadCollectionForm(FlaskForm):
                 return True
             else:
                 raise ValidationError("Velja verður annað hvort staðlað form" + "eða LOBE söfnun")
-        raise ValidationError("Velja verður annað hvort staðlað form EÐA LOBE söfnun")
 
 
 class MosUploadForm(FlaskForm):
@@ -544,4 +531,5 @@ class MosUploadForm(FlaskForm):
 
 
 class PostLinkForm(FlaskForm):
-    link = TextField("Youtube hlekkur:", [validators.required()])
+    link = StringField("Youtube hlekkur:", [InputRequired()])
+    link = StringField("Youtube hlekkur:", [InputRequired()])

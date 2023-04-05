@@ -1,49 +1,48 @@
 import json
-import traceback
 import random
+import traceback
 import uuid
-import numpy as np
-from zipfile import ZipFile
 from operator import itemgetter
+from zipfile import ZipFile
 
+import numpy as np
 from flask import (
     Blueprint,
     Response,
-    send_from_directory,
-    request,
-    render_template,
     flash,
     redirect,
+    render_template,
+    request,
+    send_from_directory,
     url_for,
 )
 from flask import current_app as app
-from flask_security import login_required, roles_accepted, current_user
-from sqlalchemy.exc import IntegrityError
-
-from lobe.models import (
-    Mos,
-    Collection,
-    MosInstance,
-    User,
-    Token,
-    CustomToken,
-    CustomRecording,
-    db,
-)
-from lobe.db import (
+from flask_security import current_user, login_required, roles_accepted
+from lobe.database_functions import (
+    delete_mos_instance_db,
     resolve_order,
     save_custom_wav,
     save_MOS_ratings,
-    delete_mos_instance_db,
 )
 from lobe.forms import (
-    MosSelectAllForm,
-    MosUploadForm,
-    MosItemSelectionForm,
-    MosTestForm,
-    MosForm,
     MosDetailForm,
+    MosForm,
+    MosItemSelectionForm,
+    MosSelectAllForm,
+    MosTestForm,
+    MosUploadForm,
 )
+from lobe.models import (
+    Collection,
+    CustomRecording,
+    CustomToken,
+    Mos,
+    MosInstance,
+    Token,
+    User,
+    db,
+)
+from sqlalchemy.exc import IntegrityError
 
 mos = Blueprint("mos", __name__, template_folder="templates")
 
@@ -102,7 +101,7 @@ def mos_collection_none():
     page = int(request.args.get("page", 1))
     collection = json.dumps({"name": "Óháð söfnun", "id": 0})
     mos_list = (
-        Mos.query.filter(Mos.collection_id == None)
+        Mos.query.filter(Mos.collection_id is None)
         .order_by(
             resolve_order(
                 Mos,
@@ -276,7 +275,7 @@ def mos_test(id, uuid):
         mos_configurations = mos.getConfigurations()
         mos_list = mos_configurations[(mos.num_participants - 1) % len(mos_configurations)]
     else:
-        mos_instances = MosInstance.query.filter(MosInstance.mos_id == id, MosInstance.selected == True)
+        mos_instances = MosInstance.query.filter(MosInstance.mos_id == id, MosInstance.selected is True)
         mos_list = [instance for instance in mos_instances if instance.path]
         random.shuffle(mos_list)
 
@@ -445,7 +444,7 @@ def stream_MOS_zip(id):
     mos = Mos.query.get(id)
     mos_list = (
         MosInstance.query.filter(MosInstance.mos_id == id)
-        .filter(MosInstance.is_synth == False)
+        .filter(MosInstance.is_synth is False)
         .order_by(
             resolve_order(
                 MosInstance,

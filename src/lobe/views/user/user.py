@@ -1,11 +1,18 @@
 import traceback
 import uuid
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint
 from flask import current_app as app
+from flask import flash, redirect, render_template, request, url_for
 from flask_security import login_required, roles_accepted
 from flask_security.utils import hash_password
-from lobe.db import add_progression_on_user, resolve_order, sessions_day_info
+from sqlalchemy import or_
+
+from lobe.database_functions import (
+    add_progression_on_user,
+    resolve_order,
+    sessions_day_info,
+)
 from lobe.forms import (
     ExtendedRegisterForm,
     RoleForm,
@@ -13,7 +20,6 @@ from lobe.forms import (
     VerifierRegisterForm,
 )
 from lobe.models import Recording, Role, Session, User, db
-from sqlalchemy import or_
 
 user = Blueprint("user", __name__, template_folder="templates")
 

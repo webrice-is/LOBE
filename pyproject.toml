@@ -6,8 +6,8 @@ readme = "README.md"
 license = { file = "LICENSE" }
 description = "A sound recording, promt managment and analysis tool."
 dependencies = [
-    "Flask >= 2",
-    "Flask-Executor>=0.10",  # async tasks
+    "Flask~=2.2",
+    "Flask-Executor~=0.10",  # async tasks
     # audio processing
     "librosa>=0.7.2",
     "numpy>=1.21.0",
@@ -20,16 +20,18 @@ dependencies = [
     "termcolor>=1.1.0",  # colored terminal output
     "Flask-Script>=2.0.6",  # cli - dead project
     # database
-    "psycopg2-binary>=2.8.5",  # postgres driver
-    "SQLAlchemy>=1.4.18",  # ORM
-    "Flask-SQLAlchemy>=3.0.3",  # ORM
-    "Flask-Migrate>=4.0.4",  # migrations - uses alembic
+    "psycopg2-binary~=2.0",  # postgres driver
+    "SQLAlchemy~=1.4",  # ORM
+    "Flask-SQLAlchemy~=3.0",  # ORM
+    "Flask-Migrate~=4.0",  # migrations - uses alembic
     # UI
-    "WTForms>=3.0.0",  # forms, validation and utils
+    "WTForms~=3.0",  # forms, validation and utils
     "Flask-WTF>=1.1.1",  # WTForms integration
-    "Babel>=2.9.1",  # localisation
+    "Flask-Babel~=3.0",  # localisation
+    "WTForms-Components>=0.10.5",  # custom form fields
+    "WTForms-Alchemy>=0.18",  # WTForms integration
     # security
-    "Flask-Security-Too>=5.0.0",
+    "Flask-Security-Too~=3.0",
 ]
 [tool.black]
 line-length = 120
@@ -38,4 +40,4 @@ line-length = 120
 line-length = 120
 
 [project.optional-dependencies]
-dev = ["black", "ruff"]
+dev = ["black", "ruff", "isort"]

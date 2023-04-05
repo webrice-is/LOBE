@@ -4,18 +4,13 @@ import random
 import traceback
 from datetime import date, datetime, timedelta
 
-from flask import (
-    Blueprint,
-    Response,
-    flash,
-    redirect,
-    render_template,
-    request,
-    url_for,
-)
+from flask import Blueprint, Response
 from flask import current_app as app
+from flask import flash, redirect, render_template, request, url_for
 from flask_security import current_user, login_required, roles_accepted
-from lobe.db import activity, get_verifiers, insert_trims, resolve_order
+from sqlalchemy import and_, or_
+
+from lobe.database_functions import activity, get_verifiers, insert_trims, resolve_order
 from lobe.forms import DailySpinForm, DeleteVerificationForm, SessionVerifyForm
 from lobe.models import (
     Collection,
@@ -26,7 +21,6 @@ from lobe.models import (
     Verification,
     db,
 )
-from sqlalchemy import and_, or_
 
 verification = Blueprint("verification", __name__, template_folder="templates")
 

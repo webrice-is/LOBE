@@ -1,49 +1,49 @@
 """Initialize Flask app."""
-import os
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask
-from flask_security import Security, SQLAlchemyUserDatastore
-from flask_reverse_proxy_fix.middleware import ReverseProxyPrefixFix
 from flask_executor import Executor
+from flask_migrate import Migrate
+from flask_security import Security, SQLAlchemyUserDatastore
+from flask_sqlalchemy import SQLAlchemy
 
-
-from lobe.forms import ExtendedLoginForm
-from lobe.models import User, Role
-from lobe.models import db as sqlalchemy_db
-from lobe.filters import format_date
-
-from lobe.views.verification import verification
-from lobe.views.main import main
-from lobe.views.collection import collection
-from lobe.views.token import token
-from lobe.views.recording import recording
-from lobe.views.session import session
-from lobe.views.user import user
-from lobe.views.application import application
-from lobe.views.configuration import configuration
-from lobe.views.mos import mos
-from lobe.views.shop import shop
-from lobe.views.feed import feed
+migrate = Migrate()
+security = Security()
+db = SQLAlchemy()
 
 
 def create_app():
-    user_datastore = SQLAlchemyUserDatastore(sqlalchemy_db, User, Role)
-    app = Flask(__name__)
+    from lobe.filters import format_date
+    from lobe.forms import ExtendedLoginForm
+    from lobe.models import Role, User
+    from lobe.views.application import application
+    from lobe.views.collection import collection
+    from lobe.views.configuration import configuration
+    from lobe.views.feed import feed
+    from lobe.views.main import main
+    from lobe.views.mos import mos
+    from lobe.views.recording import recording
+    from lobe.views.session import session
+    from lobe.views.shop import shop
+    from lobe.views.token import token
+    from lobe.views.user import user
+    from lobe.views.verification import verification
 
-    if os.getenv("SEMI_PROD", False):
-        app.config.from_pyfile("{}.py".format(os.path.join("settings", "semi_production")))
-    else:
-        app.config.from_pyfile("{}.py".format(os.path.join("settings", os.getenv("FLASK_ENV", "development"))))
-    if "REVERSE_PROXY_PATH" in app.config:
-        ReverseProxyPrefixFix(app)
-
+    # We need to set the instance path to the location of the config file
+    app = Flask(__name__, instance_path=os.environ.get("FLASK_INSTANCE_PATH"), instance_relative_config=True)
     app.logger.setLevel(logging.DEBUG)
+
+    app.config.from_pyfile("config.py")
+
+    user_datastore = SQLAlchemyUserDatastore(db, User, Role)
+
     app.logger.addHandler(create_logger(app.config["LOG_PATH"]))
 
-    sqlalchemy_db.init_app(app)
-    Security(app, user_datastore, login_form=ExtendedLoginForm)
+    db.init_app(app)
+    migrate.init_app(app, db)
+    security.init_app(app, user_datastore, login_form=ExtendedLoginForm)
 
     # register filters
     app.jinja_env.filters["datetime"] = format_date
@@ -80,6 +80,3 @@ def create_logger(log_path: str):
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s in %(module)s: %(message)s"))
     return handler
-
-
-app = create_app()

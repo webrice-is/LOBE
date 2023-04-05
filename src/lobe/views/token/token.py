@@ -1,7 +1,8 @@
 import traceback
 
+from flask import Blueprint
+from flask import current_app as app
 from flask import (
-    Blueprint,
     flash,
     redirect,
     render_template,
@@ -9,9 +10,9 @@ from flask import (
     send_from_directory,
     url_for,
 )
-from flask import current_app as app
 from flask_security import login_required, roles_accepted
-from lobe.db import delete_token_db, resolve_order
+
+from lobe.database_functions import delete_token_db, resolve_order
 from lobe.models import Token, db
 
 token = Blueprint("token", __name__, template_folder="templates")
