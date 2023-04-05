@@ -1,34 +1,41 @@
+import datetime
 import getpass
+import json
 import os
 import re
 import sys
-import json
-import uuid
 import traceback
-import datetime
-from shutil import copyfile
-from tqdm import tqdm
+import uuid
+from collections import defaultdict
 from random import randrange
+from shutil import copyfile
 
-from flask_migrate import Migrate, MigrateCommand
 from flask_script import Command, Manager
 from flask_security.utils import hash_password
+from lobe import app
+from lobe.db import get_admins, get_verifiers, get_verifiers_and_admins
+from lobe.models import (
+    Collection,
+    Configuration,
+    MosInstance,
+    Recording,
+    Role,
+    Session,
+    Token,
+    User,
+    VerifierIcon,
+    VerifierProgression,
+    VerifierQuote,
+    VerifierTitle,
+    db,
+)
+from lobe.tools.analyze import load_sample, signal_is_too_high, signal_is_too_low
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from termcolor import colored
-from collections import defaultdict
+from tqdm import tqdm
 
-from lobe import app
-from lobe.models import (Recording, Token, User, Role, Collection,
-                         Configuration, Session, VerifierProgression,
-                         VerifierIcon, VerifierQuote, VerifierTitle, db,
-                         MosInstance)
-from lobe.db import get_verifiers, get_admins, get_verifiers_and_admins
-from lobe.tools.analyze import (load_sample, signal_is_too_high,
-                                signal_is_too_low)
-
-migrate = Migrate(app, db)
 manager = Manager(app)
 
 
@@ -37,18 +44,16 @@ class AddDefaultRoles(Command):
         roles = [
             {
                 "name": "admin",
-                "description":
-                    'Umsjónarhlutverk með aðgang að notendastillingum',
+                "description": "Umsjónarhlutverk með aðgang að notendastillingum",
             },
             {
                 "name": "Notandi",
-                "description": 'Venjulegur notandi með grunn aðgang',
+                "description": "Venjulegur notandi með grunn aðgang",
             },
             {
                 "name": "Greinir",
-                "description": 'Greinir með takmarkað aðgengi',
+                "description": "Greinir með takmarkað aðgengi",
             },
-
         ]
         existing_roles = [role.name for role in Role.query.all()]
         for i, r in enumerate(roles):
@@ -64,12 +69,12 @@ class AddDefaultRoles(Command):
 
 class AddDefaultConfiguration(Command):
     def run(self):
-        main_conf = Configuration.query.filter_by(name='Aðalstilling').count()
+        main_conf = Configuration.query.filter_by(name="Aðalstilling").count()
         if main_conf:
             print("Configuration already exists.")
             return
         conf = Configuration()
-        conf.name = 'Aðalstilling'
+        conf.name = "Aðalstilling"
         db.session.add(conf)
         db.session.commit()
 
@@ -87,15 +92,15 @@ class AddUser(Command):
             while role_select not in [r.id for r in roles]:
                 print(role_select, [r.id for r in roles])
                 print("Select a role")
-                role_select = int(input("".join(["[{}] - {} : {}\n".format(
-                    role.id, role.name, role.description) for role in roles])))
+                role_select = int(
+                    input("".join(["[{}] - {} : {}\n".format(role.id, role.name, role.description) for role in roles]))
+                )
             selected_roles.append(Role.query.get(role_select).name)
         with app.app_context():
             try:
                 app.user_datastore.create_user(
-                    email=email, password=hash_password(password),
-                    name=name, roles=selected_roles,
-                    uuid=uuid.uuid4())
+                    email=email, password=hash_password(password), name=name, roles=selected_roles, uuid=uuid.uuid4()
+                )
                 db.session.commit()
                 print("User with email {} has been created".format(email))
             except IntegrityError as e:
@@ -126,113 +131,108 @@ def get_pw(confirm=True):
 
 
 class changeDataRoot(Command):
-    '''
+    """
     This can be used to change the recording and token tables
     to reflect changes in app.settings.DATA_BASE_DIR updates
-    '''
+    """
+
     def run(self):
-        change_all_recordings, change_all_tokens, \
-            skip_recording_exceptions = False, False, False
+        change_all_recordings, change_all_tokens, skip_recording_exceptions = False, False, False
         rec_rxp = re.compile("{}/d+".format(app.config["RECORD_DIR"]))
         tkn_rxp = re.compile("{}/d+".format(app.config["TOKEN_DIR"]))
 
-        print("The configured data directory is ",
-              colored("{}".format(app.config['DATA_BASE_DIR']), 'yellow'))
-        print("Recording directory: ",
-              colored("{}".format(app.config['RECORD_DIR']), 'yellow'))
-        print("Token directory: ",
-              colored("{}".format(app.config['TOKEN_DIR']), 'yellow'))
+        print("The configured data directory is ", colored("{}".format(app.config["DATA_BASE_DIR"]), "yellow"))
+        print("Recording directory: ", colored("{}".format(app.config["RECORD_DIR"]), "yellow"))
+        print("Token directory: ", colored("{}".format(app.config["TOKEN_DIR"]), "yellow"))
 
         recordings = Recording.query.all()
         for recording in recordings:
-            if recording.path is None or \
-                    not rec_rxp.match(os.path.dirname(recording.path)):
+            if recording.path is None or not rec_rxp.match(os.path.dirname(recording.path)):
 
-                print(colored(
-                    f"Updating path for {recording.get_printable_id()}",
-                    'red'))
+                print(colored(f"Updating path for {recording.get_printable_id()}", "red"))
                 try:
                     if change_all_recordings:
                         recording.set_path()
                     else:
                         cont = input(
-                            colored(recording.path, 'red') +
-                            "will be changed to" +
-                            colored(recording.get_configured_path(), 'green') +
-                            "[y/n/all/cancel]?")
-                        if cont == 'y':
+                            colored(recording.path, "red")
+                            + "will be changed to"
+                            + colored(recording.get_configured_path(), "green")
+                            + "[y/n/all/cancel]?"
+                        )
+                        if cont == "y":
                             recording.set_path()
-                        elif cont == 'all':
+                        elif cont == "all":
                             recording.set_path()
                             change_all_recordings = True
-                        elif cont == 'cancel':
-                            print("Quitting, no recording has been committed" +
-                                  "to database")
+                        elif cont == "cancel":
+                            print("Quitting, no recording has been committed" + "to database")
                             sys.exit()
                         else:
                             print("skipping")
                 except Exception:
                     if not skip_recording_exceptions:
-                        cont = input("""
+                        cont = input(
+                            """
                             This recording does not have collection set in the
                             database and therefore the path is also wrong. We
                             cannot update this recording in the database.
-                            [continue/all/cancel] """)
-                        if cont == 'cancel':
-                            print("Quitting, no recording has been committed" +
-                                  "to database")
+                            [continue/all/cancel] """
+                        )
+                        if cont == "cancel":
+                            print("Quitting, no recording has been committed" + "to database")
                             sys.exit()
-                        elif cont == 'all':
-                            print("Will skip all exceptions and recordings " +
-                                  "will be unchanged in DB.")
+                        elif cont == "all":
+                            print("Will skip all exceptions and recordings " + "will be unchanged in DB.")
                             skip_recording_exceptions = True
                     else:
-                        print(colored("Skipping exception", 'red'))
+                        print(colored("Skipping exception", "red"))
             else:
-                print(colored("Path correct", 'green'))
+                print(colored("Path correct", "green"))
         db.session.commit()
 
         tokens = Token.query.all()
         for token in tokens:
-            if token.path is None or not tkn_rxp.match(
-                    os.path.dirname(token.path)):
-                print(colored(
-                    f"Updating path for {token.get_printable_id()}", 'red'))
+            if token.path is None or not tkn_rxp.match(os.path.dirname(token.path)):
+                print(colored(f"Updating path for {token.get_printable_id()}", "red"))
                 if change_all_tokens:
                     token.set_path()
                 else:
                     cont = input(
-                        colored(token.path, 'red') +
-                        "will be changed to" +
-                        colored(token.get_configured_path(), 'green') +
-                        "[y/n/all/cancel]: ")
-                    if cont == 'y':
+                        colored(token.path, "red")
+                        + "will be changed to"
+                        + colored(token.get_configured_path(), "green")
+                        + "[y/n/all/cancel]: "
+                    )
+                    if cont == "y":
                         token.set_path()
-                    elif cont == 'all':
+                    elif cont == "all":
                         token.set_path()
                         change_all_tokens = True
-                    elif cont == 'cancel':
-                        print("Quitting, no token has been committed to" +
-                              "database but recording paths have possibly" +
-                              "been changed")
+                    elif cont == "cancel":
+                        print(
+                            "Quitting, no token has been committed to"
+                            + "database but recording paths have possibly"
+                            + "been changed"
+                        )
                         sys.exit()
                     else:
                         print("skipping")
             else:
-                print(colored("Path correct", 'green'))
+                print(colored("Path correct", "green"))
         db.session.commit()
 
 
 @manager.command
 def download_collection(collection_id, out_dir):
-    '''
+    """
     Will create:
     * out_dir/audio/...
     * out_dir/text/...
     * out_dir/index.tsv
     * out_dir/info.json
     * out_dir/meta.json
-    '''
+    """
     collection = Collection.query.get(collection_id)
     tokens = collection.tokens
     dl_tokens = []
@@ -240,62 +240,59 @@ def download_collection(collection_id, out_dir):
         if token.num_recordings > 0:
             dl_tokens.append(token)
     if not os.path.exists(out_dir):
-        os.makedirs(os.path.join(out_dir, 'audio'))
-        os.makedirs(os.path.join(out_dir, 'text'))
-    index_f = open(os.path.join(out_dir, 'index.tsv'), 'w')
+        os.makedirs(os.path.join(out_dir, "audio"))
+        os.makedirs(os.path.join(out_dir, "text"))
+    index_f = open(os.path.join(out_dir, "index.tsv"), "w")
 
     user_ids = set()
     recording_info = {}
     try:
         for token in tqdm(dl_tokens):
-            copyfile(
-                token.get_path(),
-                os.path.join(out_dir, 'text/{}'.format(token.get_fname())))
+            copyfile(token.get_path(), os.path.join(out_dir, "text/{}".format(token.get_fname())))
             for recording in token.recordings:
                 if recording.get_path() is not None:
                     user_name = recording.get_user().name
                     user_ids.add(recording.user_id)
-                    if not os.path.exists(
-                            os.path.join(out_dir, 'audio', user_name)):
-                        os.makedirs(os.path.join(out_dir, 'audio', user_name))
+                    if not os.path.exists(os.path.join(out_dir, "audio", user_name)):
+                        os.makedirs(os.path.join(out_dir, "audio", user_name))
                     copyfile(
                         recording.get_path(),
-                        os.path.join(out_dir, 'audio/{}/{}'.format(
-                            user_name, recording.get_fname())))
+                        os.path.join(out_dir, "audio/{}/{}".format(user_name, recording.get_fname())),
+                    )
                     recording_info[recording.id] = {
-                        'collection_info': {
-                            'recording_fname': recording.get_fname(),
-                            'text_fname': token.get_fname(),
-                            'text': token.text,
-                            'user_name': user_name,
-                            'user_id': recording.user_id,
-                            'session_id': recording.session.id
-                        }, 'recording_info': {
-                            'sr': recording.sr,
-                            'num_channels': recording.num_channels,
-                            'bit_depth': recording.bit_depth,
-                            'duration': recording.duration,
-                        }, 'other': {
-                            'transcription': recording.transcription,
-                            'recording_marked_bad': recording.marked_as_bad,
-                            'text_marked_bad': token.marked_as_bad}}
-                    index_f.write('{}\t{}\n'.format(
-                        recording.get_fname(), token.get_fname()))
+                        "collection_info": {
+                            "recording_fname": recording.get_fname(),
+                            "text_fname": token.get_fname(),
+                            "text": token.text,
+                            "user_name": user_name,
+                            "user_id": recording.user_id,
+                            "session_id": recording.session.id,
+                        },
+                        "recording_info": {
+                            "sr": recording.sr,
+                            "num_channels": recording.num_channels,
+                            "bit_depth": recording.bit_depth,
+                            "duration": recording.duration,
+                        },
+                        "other": {
+                            "transcription": recording.transcription,
+                            "recording_marked_bad": recording.marked_as_bad,
+                            "text_marked_bad": token.marked_as_bad,
+                        },
+                    }
+                    index_f.write("{}\t{}\n".format(recording.get_fname(), token.get_fname()))
                 else:
-                    print(
-                        f"Error - token {token.id} does not have a recording")
+                    print(f"Error - token {token.id} does not have a recording")
         index_f.close()
-        with open(os.path.join(out_dir, 'info.json'), 'w', encoding='utf-8') \
-                as info_f:
+        with open(os.path.join(out_dir, "info.json"), "w", encoding="utf-8") as info_f:
             json.dump(recording_info, info_f, ensure_ascii=False, indent=4)
 
-        meta = {'speakers': []}
+        meta = {"speakers": []}
         for id in user_ids:
-            meta['speakers'].append(User.query.get(id).get_meta())
+            meta["speakers"].append(User.query.get(id).get_meta())
 
-        meta['collection'] = collection.get_meta()
-        with open(os.path.join(out_dir, 'meta.json'), 'w', encoding='utf-8') \
-                as meta_f:
+        meta["collection"] = collection.get_meta()
+        with open(os.path.join(out_dir, "meta.json"), "w", encoding="utf-8") as meta_f:
             json.dump(meta, meta_f, ensure_ascii=False, indent=4)
 
         print("Done!, data available at {}".format(out_dir))
@@ -306,10 +303,10 @@ def download_collection(collection_id, out_dir):
 
 @manager.command
 def update_session_verifications():
-    '''
+    """
     Sets session.is_verified and session.is_secondarily_verified to False
     on all prior tuples in Session table
-    '''
+    """
     sessions = Session.query.all()
     for session in tqdm(sessions):
         if session.is_verified is None:
@@ -321,7 +318,7 @@ def update_session_verifications():
 
 @manager.command
 def release_unverified_sessions():
-    '''
+    """
     To avoid double verification, a user id is attached to each
     session before it is verified. If a user repeatedly requests
     a session to verify without completing the verification the
@@ -331,10 +328,10 @@ def release_unverified_sessions():
 
     Note: this likely never happens as the hogging user will be
     queued with the first session with its user id.
-    '''
+    """
     releasable_sessions = Session.query.filter(
-        and_(not Session.is_verified == False,
-             Session.is_secondarily_verified == False))
+        and_(Session.is_verified is not False, Session.is_secondarily_verified is False)
+    )
 
     for session in releasable_sessions:
         session.verified_by = None
@@ -344,7 +341,7 @@ def release_unverified_sessions():
 
 @manager.command
 def update_numbers():
-    '''
+    """
     Updates out-of-date values for the following columns in the Colleciton
     class:
         * num_tokens
@@ -352,7 +349,7 @@ def update_numbers():
         * num_invalid_tokens
     And the following of the Token class:
         * num_recordings
-    '''
+    """
     recordings = Recording.query.all()
     token_recordings = defaultdict(int)
 
@@ -377,10 +374,10 @@ def update_numbers():
 
 @manager.command
 def set_dev_sessions():
-    '''
+    """
     sets session.is_dev for all sessions on development collections
-    '''
-    dev_collections = Collection.query.filter(Collection.is_dev == True)
+    """
+    dev_collections = Collection.query.filter(Collection.is_dev is True)
     for collection in dev_collections:
         for session in collection.sessions:
             session.is_dev = True
@@ -389,10 +386,10 @@ def set_dev_sessions():
 
 @manager.command
 def set_not_dev_sessions():
-    '''
+    """
     sets session.is_dev for all sessions on non developmental collections
-    '''
-    non_dev_collections = Collection.query.filter(Collection.is_dev != True)
+    """
+    non_dev_collections = Collection.query.filter(Collection.is_dev is not True)
     for collection in non_dev_collections:
         for session in collection.sessions:
             session.is_dev = False
@@ -401,9 +398,9 @@ def set_not_dev_sessions():
 
 @manager.command
 def set_not_dev_collections():
-    '''
+    """
     Sets all collections as NOT developmental
-    '''
+    """
     not_dev_collections = Collection.query.all()
     for collection in not_dev_collections:
         collection.is_dev = False
@@ -412,37 +409,36 @@ def set_not_dev_collections():
 
 @manager.command
 def update_analysis():
-    '''
+    """
     Performs analysis on all recordings that don't have analysis
-    '''
-    recordings = Recording.query.filter(Recording.analysis == None)
+    """
+    recordings = Recording.query.filter(Recording.analysis is None)
     for r in tqdm(recordings):
         # load the sample
         sample, _ = load_sample(r.path)
         # check the sample and return the response
         if signal_is_too_high(sample):
-            r.analysis = 'high'
+            r.analysis = "high"
         elif signal_is_too_low(sample):
-            r.analysis = 'low'
+            r.analysis = "low"
         else:
-            r.analysis = 'ok'
+            r.analysis = "ok"
     db.session.commit()
 
 
 @manager.command
 def update_collection_configuration():
-    '''
+    """
     Sets the configuration of all non-configured
     collections to the default configuration
-    '''
+    """
     try:
-        default_config = Configuration.query.filter(
-            Configuration.is_default == True)
+        default_config = Configuration.query.filter(Configuration.is_default is True)
     except MultipleResultsFound as e:
         print(e)
     except NoResultFound as e:
         print(e)
-    collections = Collection.query.filter(Collection.configuration_id != None)
+    collections = Collection.query.filter(Collection.configuration_id is not None)
     for collection in collections:
         collection.configuration_id = default_config
     db.session.commit()
@@ -450,20 +446,19 @@ def update_collection_configuration():
 
 @manager.command
 def debug_numbers(collection_id):
-    '''
+    """
     Return a list of all tokens that have been recorded
     but do not have exactly one associated recording
-    '''
+    """
     tokens = Collection.query.get(collection_id).tokens
     for token in tqdm(tokens):
         recordings = token.recordings
-        if(len(recordings) > 0):
-            if(len(recordings) != token.num_recordings):
-                print(f'Token {token.id} has {token.num_recordings}' +
-                      f'but there are actually {len(recordings)}')
-            elif(len(recordings) == 2):
-                print(f'Token {token.id} has {len(recordings)}')
-                print(' '.join(str(r.session_id) for r in recordings))
+        if len(recordings) > 0:
+            if len(recordings) != token.num_recordings:
+                print(f"Token {token.id} has {token.num_recordings}" + f"but there are actually {len(recordings)}")
+            elif len(recordings) == 2:
+                print(f"Token {token.id} has {len(recordings)}")
+                print(" ".join(str(r.session_id) for r in recordings))
 
 
 @manager.command
@@ -478,11 +473,10 @@ def add_missing_dirs():
 
 @manager.command
 def fix_verified_status():
-    '''
+    """
     Use this if recordings are marked verified without verifications
-    '''
-    verified_recordings = \
-        Recording.query.filter(Recording.is_verified == True)
+    """
+    verified_recordings = Recording.query.filter(Recording.is_verified is True)
     for rec in verified_recordings:
         if len(rec.verifications) == 0:
             rec.is_verified = False
@@ -490,8 +484,7 @@ def fix_verified_status():
             session.is_verified = False
     db.session.commit()
 
-    secondarily_verified_recordings = \
-        Recording.query.filter(Recording.is_secondarily_verified == True)
+    secondarily_verified_recordings = Recording.query.filter(Recording.is_secondarily_verified is True)
     for rec in secondarily_verified_recordings:
         if len(rec.verifications) < 2:
             rec.is_secondarily_verified = False
@@ -512,6 +505,7 @@ def add_progression_to_verifiers():
             verifier.progression_id = progression.id
         db.session.commit()
 
+
 @manager.command
 def add_mos_dummy_voice_ids():
     mos_instances = MosInstance.query.all()
@@ -519,6 +513,7 @@ def add_mos_dummy_voice_ids():
         if m.voice_idx is None:
             m.voice_idx = randrange(4)
         db.session.commit()
+
 
 @manager.command
 def set_rarity():
@@ -572,9 +567,9 @@ def give_coins():
     verifiers = get_verifiers()
     print("Select a verifier id from the ones below:")
     for verifier in verifiers:
-        print(f'{verifier.name} - [{verifier.id}]')
-    user_id = int(input('user id: '))
-    coins = int(input('amount: '))
+        print(f"{verifier.name} - [{verifier.id}]")
+    user_id = int(input("user id: "))
+    coins = int(input("amount: "))
     user = User.query.get(user_id)
     progression = user.progression
     progression.lobe_coins += coins
@@ -584,7 +579,7 @@ def give_coins():
 @manager.command
 def give_all_coins():
     verifiers = get_verifiers()
-    coins = int(input('amount: '))
+    coins = int(input("amount: "))
     for verifier in verifiers:
         progression = verifier.progression
         progression.lobe_coins += coins
@@ -596,9 +591,9 @@ def give_experience():
     verifiers = get_verifiers()
     print("Select a verifier id from the ones below:")
     for verifier in verifiers:
-        print(f'{verifier.name} - [{verifier.id}]')
-    user_id = int(input('user id: '))
-    experience = int(input('amount: '))
+        print(f"{verifier.name} - [{verifier.id}]")
+    user_id = int(input("user id: "))
+    experience = int(input("amount: "))
     user = User.query.get(user_id)
     progression = user.progression
     progression.experience += experience
@@ -610,44 +605,42 @@ def delta_balance():
     verifiers = get_verifiers()
     print("Select a verifier id from the ones below:")
     for verifier in verifiers:
-        print(f'{verifier.name} - [{verifier.id}]')
-    user_id = int(input('user id: '))
+        print(f"{verifier.name} - [{verifier.id}]")
+    user_id = int(input("user id: "))
     user = User.query.get(user_id)
 
-    coins = int(input('coin amount: '))
-    experience = int(input('exp amount: '))
+    coins = int(input("coin amount: "))
+    experience = int(input("exp amount: "))
     progression = user.progression
     progression.lobe_coins += coins
     progression.experience += experience
 
     db.session.commit()
 
+
 @manager.command
 def reset_weekly_challenge():
     verifiers = get_verifiers()
-    best_verifier = sorted(
-        verifiers,
-        key=lambda v: -v.progression.weekly_verifies)[0]
+    best_verifier = sorted(verifiers, key=lambda v: -v.progression.weekly_verifies)[0]
 
     # check for price and award
     coin_price, experience_price = 0, 0
     weekly_verifies = sum([v.progression.weekly_verifies for v in verifiers])
-    weekly_params = app.config['ECONOMY']['weekly_challenge']
-    weekly_goal = weekly_params['goal']
+    weekly_params = app.config["ECONOMY"]["weekly_challenge"]
+    weekly_goal = weekly_params["goal"]
     if weekly_verifies > weekly_goal:
-        coin_price = weekly_params['coin_reward']
-        experience_price = weekly_params['experience_reward']
-        extra = int(
-            (weekly_verifies-weekly_goal) / weekly_params['extra_interval'])
-        coin_price += extra * weekly_params['extra_coin_reward']
-        experience_price += extra * weekly_params['extra_experience_reward']
+        coin_price = weekly_params["coin_reward"]
+        experience_price = weekly_params["experience_reward"]
+        extra = int((weekly_verifies - weekly_goal) / weekly_params["extra_interval"])
+        coin_price += extra * weekly_params["extra_coin_reward"]
+        experience_price += extra * weekly_params["extra_experience_reward"]
 
     # give prices and reset counters
     for verifier in verifiers:
         v_coin_price, v_experience_price = coin_price, experience_price
         if verifier.id == best_verifier.id:
-            v_coin_price += weekly_params['best_coin_reward']
-            v_experience_price += weekly_params['best_experience_reward']
+            v_coin_price += weekly_params["best_coin_reward"]
+            v_experience_price += weekly_params["best_experience_reward"]
 
         progression = verifier.progression
         progression.weekly_verifies = 0
@@ -662,7 +655,7 @@ def reset_weekly_challenge():
 
 class AddColumnDefaults(Command):
     def run(self):
-        users = User.query.filter(User.uuid == None).all()
+        users = User.query.filter(User.uuid is None).all()
         for u in users:
             u.uuid = str(uuid.uuid4())
         db.session.commit()
@@ -670,10 +663,9 @@ class AddColumnDefaults(Command):
 
 @manager.command
 def set_firesale():
-    do_fire_sale = bool(int(input('Do 1 for firesale, 0 to deactivate: ')))
+    do_fire_sale = bool(int(input("Do 1 for firesale, 0 to deactivate: ")))
     if do_fire_sale:
-        fire_sale_discount = \
-            float(input('Select discount, e.g. 0.3 for 30 percent off: '))
+        fire_sale_discount = float(input("Select discount, e.g. 0.3 for 30 percent off: "))
     else:
         fire_sale_discount = 0.0
 
@@ -696,42 +688,42 @@ def respin():
     db.session.commit()
 
 
-
 @manager.command
 def accurate_time():
     collections = Collection.query.all()
-    print('Select a collection id')
+    print("Select a collection id")
     for collection in collections:
-        print(f'{collection.name} [{collection.id}]')
-    collection = Collection.query.get(int(input('Selection: ')))
-    out = os.popen(
-        f'soxi -D {collection.get_wav_audio_dir()}/* | paste -sd+ | bc').read()
+        print(f"{collection.name} [{collection.id}]")
+    collection = Collection.query.get(int(input("Selection: ")))
+    out = os.popen(f"soxi -D {collection.get_wav_audio_dir()}/* | paste -sd+ | bc").read()
 
-    out = float(out.strip('\n')) - collection.num_recorded_tokens*2
-    hours = out/3600
-    print(f'The collection has {hours:.3f} recorded hours')
+    out = float(out.strip("\n")) - collection.num_recorded_tokens * 2
+    hours = out / 3600
+    print(f"The collection has {hours:.3f} recorded hours")
 
 
 @manager.command
 def session_verification_status():
-    session_id = int(input('Select a session ID: '))
+    session_id = int(input("Select a session ID: "))
     session = Session.query.get(session_id)
-    print(f'Session.is_verified: {session.is_verified}')
-    print(f'Session.is_secondarily_verified: {session.is_secondarily_verified}')
+    print(f"Session.is_verified: {session.is_verified}")
+    print(f"Session.is_secondarily_verified: {session.is_secondarily_verified}")
     for recording in session.recordings:
-        print(f'Recording {recording.id} is_verified: {recording.is_verified}')
-        print(f'Recording {recording.id} is_secondarily_verified: {recording.is_secondarily_verified}')
+        print(f"Recording {recording.id} is_verified: {recording.is_verified}")
+        print(f"Recording {recording.id} is_secondarily_verified: {recording.is_secondarily_verified}")
+
 
 @manager.command
 def set_session_verified():
-    session_id = int(input('Select a session ID: '))
+    session_id = int(input("Select a session ID: "))
     session = Session.query.get(session_id)
     session.is_verified = True
     db.session.commit()
 
+
 @manager.command
 def delete_session_verifications():
-    session_id = int(input('Select a session ID: '))
+    session_id = int(input("Select a session ID: "))
     session = Session.query.get(session_id)
     session.is_verified = False
     session.is_secondarily_verified = False
@@ -743,27 +735,36 @@ def delete_session_verifications():
         recording.is_secondarily_verified = False
     db.session.commit()
 
+
 @manager.command
 def delete_recording_verifications():
-    recording_id = int(input('Select a recording ID: '))
+    recording_id = int(input("Select a recording ID: "))
     recording = Recording.query.get(recording_id)
     for verification in recording.verifications:
-            db.session.delete(verification)
+        db.session.delete(verification)
     recording.is_verified = False
     recording.is_secondarily_verified = False
     db.session.commit()
 
 
-manager.add_command('db', MigrateCommand)
-manager.add_command('add_user', AddUser)
-manager.add_command('change_pass', changePass)
-manager.add_command('change_dataroot', changeDataRoot)
-manager.add_command('add_default_roles', AddDefaultRoles)
-manager.add_command('add_default_configuration', AddDefaultConfiguration)
-manager.add_command('add_column_defaults', AddColumnDefaults)
-#manager.add_command('add_mos_dummy_voice_ids', AddVoiceIds)
+manager.add_command("add_user", AddUser)
+manager.add_command("change_pass", changePass)
+manager.add_command("change_dataroot", changeDataRoot)
+manager.add_command("add_default_roles", AddDefaultRoles)
+manager.add_command("add_default_configuration", AddDefaultConfiguration)
+manager.add_command("add_column_defaults", AddColumnDefaults)
+# manager.add_command('add_mos_dummy_voice_ids', AddVoiceIds)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     manager.run()
 
+manager.add_command("change_dataroot", changeDataRoot)
+manager.add_command("add_default_roles", AddDefaultRoles)
+manager.add_command("add_default_configuration", AddDefaultConfiguration)
+manager.add_command("add_column_defaults", AddColumnDefaults)
+# manager.add_command('add_mos_dummy_voice_ids', AddVoiceIds)
+
+
+if __name__ == "__main__":
+    manager.run()
