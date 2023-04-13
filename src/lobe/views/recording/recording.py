@@ -216,6 +216,7 @@ def record_session(collection_id):
     )
 
 
+# This is no longer used but we keep it around for now
 @recording.route("/record/analyze/", methods=["POST"])
 @login_required
 @roles_accepted("admin", "Notandi")
@@ -296,5 +297,4 @@ def post_recording():
     elif session_id is None:
         flash("Engar upptökur, bara setningar merktar.", category="success")
         return Response(url_for("main.index"), status=200)
-    else:
-        return Response(url_for("session.rec_session_detail", id=session_id), status=200)
+    return Response(url_for("session.rec_session_detail", id=session_id), status=200)

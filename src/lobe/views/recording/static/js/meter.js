@@ -6,7 +6,7 @@ function createMeter(audioCtx, stream){
 }
 
 
-function meterDrawLoop(time){
+function meterDrawLoop(){
     // clear the background
     canvasContext.clearRect(0,0, meterCanvas.width, meterCanvas.height);
 

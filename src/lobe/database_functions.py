@@ -13,6 +13,7 @@ from flask_security import current_user
 from pydub import AudioSegment
 from pydub.utils import mediainfo
 from sqlalchemy import func
+from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 from werkzeug.utils import secure_filename
 
 from lobe import db
@@ -561,8 +562,7 @@ def save_MOS_ratings(form, files):
     return mos_id
 
 
-def save_recording_session(form, files):
-    duration = float(form["duration"])
+def save_recording_session(form: ImmutableMultiDict, files: ImmutableMultiDict[str, FileStorage]) -> int | None:
     user_id = int(form["user_id"])
     manager_id = int(form["manager_id"])
     collection_id = int(form["collection_id"])
@@ -570,8 +570,21 @@ def save_recording_session(form, files):
     has_video = collection.configuration.has_video
     recording_objs = json.loads(form["recordings"])
     skipped = json.loads(form["skipped"])
-    record_session = None
-    if len(recording_objs) > 0 or len(skipped):
+
+    session_id = None
+    if "session_id" in form:
+        session_id = int(form["session_id"])
+
+    # if there are no recordings and no skipped tokens then there is nothing to save.
+    # this is the case when the user clicks "næsti" or "klára" buttons without doing anything
+    # then we just return None
+    if len(recording_objs) == 0 and len(skipped) == 0:
+        return None
+
+    # here there is something to save. Either recordings or skipped tokens
+    # if there is a session_id then we are in the middle of a recording session
+    # if there is no session_id then we are starting a new recording session
+    if session_id is None:
         record_session = Session(
             user_id,
             collection_id,
@@ -582,6 +595,7 @@ def save_recording_session(form, files):
         )
         db.session.add(record_session)
         db.session.flush()
+        session_id = record_session.id
     for token_id, recording_obj in recording_objs.items():
         # this token has a recording
         file_obj = files.get("file_{}".format(token_id))
@@ -589,7 +603,7 @@ def save_recording_session(form, files):
             int(token_id),
             file_obj.filename,
             user_id,
-            session_id=record_session.id,
+            session_id=session_id,
             has_video=has_video,
         )
         if "analysis" in recording_obj:
@@ -614,13 +628,13 @@ def save_recording_session(form, files):
             # this token was skipped and has no token
             token = Token.query.get(int(token_id))
             token.marked_as_bad = True
-            token.marked_as_bad_session_id = record_session.id
+            token.marked_as_bad_session_id = session_id
     db.session.commit()
 
     # then update the numbers of the collection
     collection.update_numbers()
     db.session.commit()
-    return record_session.id if record_session else None
+    return session_id
 
 
 def sessions_day_info(sessions, user):
