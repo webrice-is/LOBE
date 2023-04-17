@@ -11,6 +11,14 @@ services:
       POSTGRES_DB: lobe
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - ./instance_folder_dev/pgdata:/var/lib/postgresql/data
+      - ./instance_folder_prod/pgdata:/var/lib/postgresql/data
+
+  lobe:
+    image: docker.greynir.is/lobe
+    restart: always
+    environment:
+      - FLASK_INSTANCE_PATH=/instance_folder
+    volumes:
+      - ./instance_folder_prod:/instance_folder
     ports:
-      - 5432:5432
+      - 5000:5000
