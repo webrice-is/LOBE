@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from flask import current_app as app
 from flask import url_for
-from flask_security import RoleMixin, UserMixin
+from flask_security.models import fsqla_v3 as fsqla
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import relationship
@@ -1245,13 +1245,13 @@ roles_users = db.Table(
 )
 
 
-class Role(db.Model, RoleMixin):
+class Role(db.Model, fsqla.FsRoleMixin):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(80), unique=True)
     description = db.Column(db.String(255))
 
 
-class User(db.Model, UserMixin):
+class User(db.Model, fsqla.FsUserMixin):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     uuid = db.Column(db.String)
     name = db.Column(db.String(255))

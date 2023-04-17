@@ -162,7 +162,6 @@ def user_create():
         form=form,
         type="create",
         action=url_for("user.user_create"),
-        section="user",
     )
 
 

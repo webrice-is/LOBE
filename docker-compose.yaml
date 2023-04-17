@@ -1,0 +1,16 @@
+version: '3.1'
+
+services:
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: lobe
+      POSTGRES_USER: lobe
+      POSTGRES_DB: lobe
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./instance_folder_dev/pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432

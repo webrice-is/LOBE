@@ -24,14 +24,14 @@ dependencies = [
     "Flask-SQLAlchemy~=3.0",  # ORM
     "Flask-Migrate~=4.0",  # migrations - uses alembic
     # UI
-    "WTForms~=3.0",  # forms, validation and utils
-    "Flask-WTF>=1.1.1",  # WTForms integration
+    "WTForms~=3.0",  # forms, validation and utils, provides Form
+    "Flask-WTF>=1.1.1",  # WTForms integration with Flask, CSRF protection, provides FlaskForm
     "Flask-Babel~=3.0",  # localisation
     "WTForms-Components>=0.10.5",  # custom form fields
-    "WTForms-Alchemy>=0.18",  # WTForms integration
+    "WTForms-Alchemy>=0.18",  # WTForms integration for SQLAlchemy model forms, provides ModelForm
     # security
-    "Flask-Security-Too~=3.0",
-    "bcrypt", # password hashing
+    "Flask-Security-Too~=5.0",
+    "bcrypt", # password hashing for Flask-Security-Too
 ]
 [tool.black]
 line-length = 120

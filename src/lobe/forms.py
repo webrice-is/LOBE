@@ -1,13 +1,10 @@
-import os
-
-from flask_security.forms import LoginForm, RegisterForm
-from flask_wtf import FlaskForm, RecaptchaField
+from flask_security.forms import RegisterForm
+from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
     BooleanField,
     EmailField,
     FloatField,
-    Form,
     HiddenField,
     IntegerField,
     MultipleFileField,
@@ -18,9 +15,10 @@ from wtforms import (
     widgets,
 )
 from wtforms.validators import InputRequired, NumberRange
-from wtforms_alchemy import ModelForm
+from wtforms_alchemy import model_form_factory
 from wtforms_alchemy.fields import QuerySelectField
 
+from lobe import db
 from lobe.models import (
     Configuration,
     Mos,
@@ -28,11 +26,17 @@ from lobe.models import (
     Posting,
     Role,
     User,
-    VerifierFont,
-    VerifierIcon,
-    VerifierQuote,
-    VerifierTitle,
 )
+
+# Combine the ModelForm (Flask-SQLAlchemy) and FlaskForm (Flask-WTF)
+# See: https://wtforms-alchemy.readthedocs.io/en/latest/advanced.html#using-wtforms-alchemy-with-flask-wtf
+BaseModelForm = model_form_factory(FlaskForm)
+
+
+class ModelForm(BaseModelForm):
+    @classmethod
+    def get_session(self):
+        return db.session
 
 
 class MultiCheckboxField(SelectMultipleField):
@@ -46,33 +50,7 @@ class MultiCheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
 
-
-class DailySpinForm(Form):
-    prize_type = HiddenField("type", validators=[InputRequired()])
-    prize_value = HiddenField("value")
-
-
-class VerifierIconForm(ModelForm):
-    class Meta:
-        model = VerifierIcon
-
-
-class VerifierTitleForm(ModelForm):
-    class Meta:
-        model = VerifierTitle
-
-
-class VerifierQuoteForm(ModelForm):
-    class Meta:
-        model = VerifierQuote
-
-
-class VerifierFontForm(ModelForm):
-    class Meta:
-        model = VerifierFont
-
-
-class CollectionForm(Form):
+class CollectionForm(FlaskForm):
     name = StringField("Nafn", validators=[InputRequired()])
     assigned_user_id = QuerySelectField("Rödd", query_factory=lambda: User.query, get_label="name", allow_blank=True)
     configuration_id = QuerySelectField(
@@ -121,7 +99,7 @@ def collection_edit_form(collection):
     return form
 
 
-class BulkTokenForm(Form):
+class BulkTokenForm(FlaskForm):
     is_g2p = BooleanField(
         "G2P skjal.",
         description="Hakið við ef skjalið er G2P skjal samanber" + " lýsingu hér að ofan",
@@ -134,17 +112,14 @@ class BulkTokenForm(Form):
     )
 
 
-class RecordForm(Form):
+class RecordForm(FlaskForm):
     token = HiddenField("Texti")
     recording = HiddenField("Upptaka")
 
 
-class ExtendedLoginForm(LoginForm):
-    if not os.getenv("FLASK_ENV", "development") == "development":
-        recaptcha = RecaptchaField()
-
-
 class ExtendedRegisterForm(RegisterForm):
+    """Extended the form with additional fields. The form is based on WTForms"""
+
     name = StringField("Nafn", [InputRequired()])
     sex = SelectField(
         "Kyn",
@@ -174,7 +149,7 @@ class VerifierRegisterForm(RegisterForm):
     name = StringField("Nafn", [InputRequired()])
 
 
-class UserEditForm(Form):
+class UserEditForm(FlaskForm):
     name = StringField("Nafn")
     email = StringField("Netfang")
     dialect = SelectField(
@@ -201,7 +176,7 @@ class UserEditForm(Form):
     active = BooleanField("Virkur")
 
 
-class SessionEditForm(Form):
+class SessionEditForm(FlaskForm):
     manager_id = QuerySelectField(
         "Stjórnandi",
         query_factory=lambda: User.query,
@@ -214,11 +189,11 @@ class SessionEditForm(Form):
             field.data = field.data.id
 
 
-class DeleteVerificationForm(Form):
+class DeleteVerificationForm(FlaskForm):
     verification_id = HiddenField("verification_id", validators=[InputRequired()])
 
 
-class SessionVerifyForm(Form):
+class SessionVerifyForm(FlaskForm):
     """Form to verify a recording inside a session"""
 
     LOW = "low"
@@ -262,7 +237,7 @@ class SessionVerifyForm(Form):
             raise ValidationError("Upptakan getur ekki verið bæði góð og slæm")
 
 
-class ConfigurationForm(Form):
+class ConfigurationForm(FlaskForm):
     name = StringField("Nafn stillinga")
     session_sz = IntegerField(
         "Fjöldi setninga í lotu",
@@ -355,13 +330,13 @@ class ConfigurationForm(Form):
 
 # The three form below might not be correct
 # model_form function was used to create them, but is now deprecated
-class RoleForm(Form):
+class RoleForm(FlaskForm):
     class Meta:
         model = Role
         exclude = ["id", "users"]
 
 
-class PostingForm(Form):
+class PostingForm(FlaskForm):
     name = StringField("Nafn", [InputRequired()])
     ad_text = StringField("Texti auglýsingar", [InputRequired()], widget=widgets.TextArea())
     utterances = StringField("Setningar", [InputRequired()], widget=widgets.TextArea())
@@ -371,7 +346,7 @@ class PostingForm(Form):
         exclude = ["id", "created_at", "uuid", "collection", "applications"]
 
 
-class MosDetailForm(Form):
+class MosDetailForm(FlaskForm):
     question = StringField("Spurning", [InputRequired()])
     form_text = StringField("Form texti", [InputRequired()], widget=widgets.TextArea())
     help_text = StringField("Hjálpartexti", [InputRequired()], widget=widgets.TextArea())
@@ -384,7 +359,7 @@ class MosDetailForm(Form):
         exclude = ["id", "created_at", "uuid", "collection", "applications"]
 
 
-class ApplicationForm(Form):
+class ApplicationForm(FlaskForm):
     name = StringField("Nafn", [InputRequired()])
     sex = SelectField(
         "Kyn",
@@ -414,10 +389,10 @@ class MosForm(ModelForm):
     class Meta:
         model = Mos
         exclude = ["uuid"]
-        num_samples = IntegerField("Fjöldi setnimmnga", [InputRequired()])
+        num_samples = IntegerField("Fjöldi setninga", [InputRequired()])
 
     def __init__(self, max_available, *args, **kwargs):
-        super(MosForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.max_available = max_available
 
     def validate_num_samples(self, field):
@@ -427,7 +402,7 @@ class MosForm(ModelForm):
             )
 
 
-class MosSelectAllForm(Form):
+class MosSelectAllForm(FlaskForm):
     is_synth = HiddenField()
     select = HiddenField()
 
@@ -438,7 +413,7 @@ class MosItemSelectionForm(ModelForm):
         exclude = ["is_synth"]
 
 
-class MosTestForm(Form):
+class MosTestForm(FlaskForm):
     name = StringField("Nafn", [InputRequired()])
     age = IntegerField("Aldur", [InputRequired(), NumberRange(min=10, max=120)])
     audio_setup = StringField("Hvers konar heyrnatól/hátalara ertu með?", [InputRequired()])
