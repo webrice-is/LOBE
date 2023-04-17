@@ -363,6 +363,12 @@ async function startRecording() {
   }
   try {
     stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+    mediaRecorder = new RecordRTCPromisesHandler(stream, mediaRecorderConfig);
+    // Start recording
+    mediaRecorder.startRecording();
+    if (conf.visualize_mic) {
+      setMicUI(true, stream);
+    }
   } catch (e) {
     console.log(e);
     if (e instanceof OverconstrainedError) {
@@ -372,12 +378,6 @@ async function startRecording() {
         e.stack
       );
     }
-  }
-  mediaRecorder = new RecordRTCPromisesHandler(stream, mediaRecorderConfig);
-  // Start recording
-  mediaRecorder.startRecording();
-  if (conf.visualize_mic) {
-    setMicUI(true, stream);
   }
 }
 
@@ -412,6 +412,7 @@ async function stopRecording() {
 
   //stop mediadevice access
   stream.getTracks().forEach((track) => track.stop());
+  stream = null;
   // reset mediaRecorder
   await mediaRecorder.reset();
   await mediaRecorder.destroy();
@@ -586,8 +587,9 @@ function setAnalysisUI(tokenIndex) {
 async function setMicUI(recording, stream) {
   // if we are recording we show the mic card
   if (recording) {
-    audioCtx = new AudioContext(stream);
-    meter = createMeter(audioCtx, stream);
+    clonedStream = stream.clone();
+    audioCtx = new AudioContext(clonedStream);
+    meter = createMeter(audioCtx, clonedStream);
     meterDrawLoop();
     micSurfer = createMicSurfer(audioCtx, "#micWaveform");
     micSurfer.microphone.start();
