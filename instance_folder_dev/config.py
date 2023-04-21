@@ -8,6 +8,7 @@ SQLALCHEMY_DATABASE_URI = "postgresql://lobe:lobe@localhost:5432/lobe"
 
 DEBUG = True
 FLASK_DEBUG = True
+BEHIND_REVERSE_PROXY = False
 APP_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
 
 # these should all have a trailing slash

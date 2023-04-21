@@ -41,3 +41,4 @@ line-length = 120
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "isort"]
+prod = ["gunicorn"]
