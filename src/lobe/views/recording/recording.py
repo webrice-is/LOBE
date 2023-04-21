@@ -212,7 +212,6 @@ def record_session(collection_id):
         user=user,
         manager=current_user,
         application=(not collection.is_closed),
-        tal_api_token=app.config["TAL_API_TOKEN"],
     )
 
 
@@ -277,7 +276,6 @@ def record_single(tok_id):
         section="record",
         single=True,
         json_tokens=json.dumps([token.get_dict()]),
-        tal_api_token=app.config["TAL_API_TOKEN"],
     )
 
 
