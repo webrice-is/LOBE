@@ -1,15 +1,14 @@
 import datetime
-import os
 import json
-import zipfile
+import os
 import traceback
+import zipfile
 from random import randint
 
 from flask import current_app as app
 
-
-from lobe.tools.analyze import load_sample, find_segment
-from lobe.models import User, Collection, db
+from lobe.models import Collection, User, db
+from lobe.tools.analyze import find_segment, load_sample
 
 
 def pseudo_unique():
@@ -153,8 +152,6 @@ def create_collection_info(id):
 def create_collection_zip(id):
     collection = Collection.query.get(id)
     dl_tokens = [t for t in collection.tokens if t.num_recordings > 0]
-    if not os.path.exists(app.config["TEMP_DIR"]):
-        os.makedirs(app.config["TEMP_DIR"])
     speaker_ids = set()
     recording_info_manager = RecordingInfoManager(id)
     index_manager = IndexManager()

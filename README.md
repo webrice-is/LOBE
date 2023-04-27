@@ -20,6 +20,7 @@ A simple setup is provided in the `docker-compose.yaml` file. To start the datab
 ```
 docker-compose up -d
 ```
+Note that the LOBE application is commented out in the docker-compose file as the application should be run via flask during development.
 
 ## Configuration
 A Flask instance path is expected to be set in the environment variable `FLASK_INSTANCE_PATH`.
@@ -49,6 +50,13 @@ To create the initial roles and configuration, run
 flask --app lobe user add_default_roles
 flask --app lobe configuration add_default
 flask --app lobe user add  # this is interactive
+```
+
+## Running the application
+LOBE is a Flask application. To run it, run
+```
+flask --app lobe run  # for debugging add --debug and --reload
+```
 ```
 
 # Known bugs

@@ -12,27 +12,29 @@ services:
       POSTGRES_DB: lobe
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - ./instance_folder_prod/pgdata:/var/lib/postgresql/data
+      - ./instance_folder_dev/pgdata:/var/lib/postgresql/data
+    ports:  # this should be commented out in production
+      - 5432:5432  # this should be commented out in production
 
-  lobe:
-    image: docker.greynir.is/lobe
-    restart: always
-    container_name: lobe
-    environment:
-      - FLASK_INSTANCE_PATH=/instance_folder
-    volumes:
-      - ./instance_folder_prod:/instance_folder
-    ports:
-      - 8000:8000
-    # for debugging we change gunicorn entrypoint to include the bind address to 0.0.0.0
-    entrypoint:
-      [
-        "/venv/bin/python",
-        "-m",
-        "gunicorn",
-        "-w",
-        "4",
-        "--bind",
-        "0.0.0.0",
-        "lobe:create_app()"
-      ]
+  # lobe:
+  #   image: docker.greynir.is/lobe
+  #   restart: always
+  #   container_name: lobe
+  #   environment:
+  #     - FLASK_INSTANCE_PATH=/instance_folder
+  #   volumes:
+  #     - ./instance_folder_prod:/instance_folder
+  #   ports:
+  #     - 8000:8000
+  #   # for debugging we change gunicorn entrypoint to include the bind address to 0.0.0.0
+  #   entrypoint:
+  #     [
+  #       "/venv/bin/python",
+  #       "-m",
+  #       "gunicorn",
+  #       "-w",
+  #       "4",
+  #       "--bind",
+  #       "0.0.0.0",
+  #       "lobe:create_app()"
+  #     ]

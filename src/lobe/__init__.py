@@ -12,6 +12,41 @@ from flask_sqlalchemy import SQLAlchemy
 migrate = Migrate()
 security = Security()
 db = SQLAlchemy()
+babel = Babel()
+executor = Executor()
+
+
+def add_app_config(app):
+    """Add extra configuration to the LOBE app."""
+    app.config["DATA_BASE_DIR"] = os.path.join(app.instance_path, "app_data/")
+    app.config["TOKEN_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "tokens/")
+    app.config["CUSTOM_TOKEN_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "custom_tokens/")
+    app.config["RECORD_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "records/")
+    app.config["CUSTOM_RECORDING_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "custom_recordings/")
+    app.config["VIDEO_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "videos/")
+    app.config["ZIP_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "zips/")
+    app.config["TEMP_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "temp/")
+    app.config["WAV_AUDIO_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "wav_audio/")
+    app.config["WAV_CUSTOM_AUDIO_DIR"] = os.path.join(app.config["DATA_BASE_DIR"], "wav_custom_audio/")
+    app.config["LOG_PATH"] = os.path.join(app.instance_path, "logs", "info.log")
+    app.config["OTHER_DIR"] = os.path.join(app.instance_path, "other")
+    app.config["STATIC_DATA_DIR"] = os.path.join(app.config["OTHER_DIR"], "static_data/")
+    app.config["MANUAL_FNAME"] = "LOBE_manual.pdf"
+    # create all the directories if they don't exist
+    for dir_path in [
+        app.config["TOKEN_DIR"],
+        app.config["CUSTOM_TOKEN_DIR"],
+        app.config["RECORD_DIR"],
+        app.config["CUSTOM_RECORDING_DIR"],
+        app.config["VIDEO_DIR"],
+        app.config["ZIP_DIR"],
+        app.config["TEMP_DIR"],
+        app.config["WAV_AUDIO_DIR"],
+        app.config["WAV_CUSTOM_AUDIO_DIR"],
+        app.config["STATIC_DATA_DIR"],
+    ]:
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
 
 
 def create_app():
@@ -68,7 +103,7 @@ def create_app():
     app.register_blueprint(feed)
     app.register_blueprint(mos)
 
-    app.executor = Executor(app)
+    executor.init_app(app)
     app.user_datastore = user_datastore
 
     # If we are behind a reverse proxy
