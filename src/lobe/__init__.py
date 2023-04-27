@@ -88,7 +88,7 @@ def create_app():
     app.jinja_env.filters["datetime"] = format_date
 
     # Propagate background task exceptions
-    app.config["EXECUTOR_PROPAGATE_EXCEPTIONS"] = True
+    app.config["EXECUTOR_TYPE"] = "process"
     # register blueprints
     app.register_blueprint(main)
     app.register_blueprint(collection)
@@ -104,6 +104,7 @@ def create_app():
     app.register_blueprint(mos)
 
     executor.init_app(app)
+    executor.add_default_done_callback(lambda future: print("background task done"))
     app.user_datastore = user_datastore
 
     # If we are behind a reverse proxy
