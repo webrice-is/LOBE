@@ -7,12 +7,14 @@ RUN python -m venv /venv
 RUN mkdir /lobe
 # set the working directory
 WORKDIR /lobe
-# add the necessary files
+# add the requirements file
+ADD requirements.txt requirements.txt
+RUN /venv/bin/pip install -r requirements.txt
+# then add the rest of the files
 ADD migrations migrations
 ADD src src
 ADD pyproject.toml pyproject.toml
-# install the dependencies from the pyproject.toml file and the production dependencies
-# We also install the project in editable mode so that the templates are available
+# We install the project in editable mode so that the templates are available
 # We might want to change this in the future
 RUN /venv/bin/pip install -e .[prod]
 # set the entrypoint
