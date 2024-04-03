@@ -176,10 +176,13 @@ def record_session(collection_id):
 
     if collection.is_multi_speaker:
         # TODO: Can we just always use this query?
+        token_ids = [
+            token_id[0] for token_id in Recording.query.filter(Recording.user_id == user_id).values(Recording.token_id)
+        ]
         tokens = (
             Token.query.filter(
                 Token.collection_id == collection_id,
-                Token.id.notin_(Recording.query.filter(Recording.user_id == user_id).values(Recording.token_id)),
+                Token.id.notin_(token_ids),
                 Token.marked_as_bad is not True,
             )
             .order_by(collection.get_sortby_function())
