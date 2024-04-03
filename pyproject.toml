@@ -1,6 +1,6 @@
 [project]
 name = "LOBE"
-version = "0.0.5"
+version = "0.0.7"
 requires-python = ">=3.10"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -19,4 +19,4 @@ dev = ["black", "ruff", "isort"]
 prod = ["gunicorn"]
 
 [tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+dependencies = { file = ["requirements.txt"] }
