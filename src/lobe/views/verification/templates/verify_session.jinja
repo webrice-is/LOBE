@@ -37,12 +37,6 @@
                 <span class='font-weight-bold mr-1'>Fyrri</span>
             </button>
             <div>
-                {% if current_user.progression.experience >= 100 %}
-                    <button class='btn btn-secondary text-info btn-sm rounded-pill' data-toggle='modal', data-target='#postSocialModal'>
-                        {{macros.btn_icon('concierge-bell', 'r')}}
-                        Hengja á vegg
-                    </button>
-                {% endif %}
                 <button class='btn btn-secondary btn-sm rounded-pill' data-toggle='collapse', data-target='#infoCollapse'>
                     <span class='font-weight-bold mr-1 ml-1'>Hjálp</span>
                     <i class='fa fa-question-circle mr-1'></i>
@@ -255,47 +249,12 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id='postSocialModal' tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Hengja á vegg samkunduhússins</h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Ertu viss um að þú viljir hengja þessa upptöku upp á vegginn?</p>
-                    <p>Það kostar {{social_prices['post_recording']}} <i class='text-danger fa fa-gem'></i></p>
-                </div>
-                <div class="modal-footer">
-                    {% if current_user.progression.experience >= social_prices['post_recording'] %}
-                        <button id='postSocial' class='btn btn-secondary text-info btn-sm rounded-pill' data-dismiss="modal">
-                            {{macros.btn_icon('concierge-bell', 'r')}}
-                            Hengja á vegg
-                        </button>
-                    {% endif %}
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Loka</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% with category=config.ECONOMY.achievements.verification, level=current_user.progression.verification_level, progress=0, type='verification', color='success' %}
-        {% include 'achievement_modal.jinja' %}
-    {% endwith %}
-    {% with category=config.ECONOMY.achievements.spy, level=current_user.progression.spy_level, progress=0, type='spy', color='warning' %}
-        {% include 'achievement_modal.jinja' %}
-    {% endwith %}
-    {% with category=config.ECONOMY.achievements.streak, level=current_user.progression.streak_level, progress=0, type='streak', color='danger' %}
-        {% include 'achievement_modal.jinja' %}
-    {% endwith %}
 
 {% endblock %}
 {% block scripts %}
     {{super()}}
     <script src='{{url_for("main.static", filename="js/error.js")}}'></script>
     <script src='{{url_for("recording.static", filename="js/surf.js")}}'></script>
-    <script src='{{url_for("shop.static", filename="js/confetti.min.js")}}'></script>
     <script>
         let wavesurfer;
         
@@ -327,7 +286,6 @@
         const playButton = document.querySelector('button#play');
         const playButtonIcon = document.querySelector('#playButtonIcon');
         const restartButton = document.querySelector("button#restart");
-        const postSocialButton = document.querySelector("button#postSocial");
 
         nextButton.addEventListener('click', nextAction);
         prevButton.addEventListener('click', prevAction);
@@ -335,7 +293,6 @@
         downloadButton.addEventListener('click', downloadAction);
         playButton.addEventListener('click', playAction);
         restartButton.addEventListener('click', restartAction);
-        postSocialButton.addEventListener('click', postSocialAction);
 
 
         let disableShortcuts = false;
@@ -403,24 +360,6 @@
         function restartAction(){
             recordings[recIndex] = JSON.parse(JSON.stringify(originalRecordings[recIndex]));
             updateUI();
-        }
-
-        function postSocialAction(){
-            const id = recordings[recIndex].rec_id
-            const Url = postPath + id
-            
-            $.ajax({
-                url: Url,
-                type: "GET",
-                success: function(result){
-                    console.log(result)
-                    alert('Upptaka hengd á samkunduhúsvegginn')
-                },
-                error:function(error){
-                    console.log(`Error ${error}`)
-                }
-            })
-            
         }
 
         function nextAction(){
@@ -533,24 +472,6 @@
                                 recordings[recIndex].verdict[input.value] = input.checked;
                             }
                         )
-                        updateExperienceVal(response.experience);
-                        updateCoinVal(response.coins);
-
-                        if(response.achievements.length > 0){
-                            for(var i=0; i<response.achievements.length; i++){
-                                $("#"+response.achievements[i]+"AchievementModal").modal('show');
-                                $("#"+response.achievements[i]+"AchievementModal").on('hide.bs.modal', function(e){
-                                    confetti.stop();
-                                });
-                            }
-                            confetti.maxCount = 150;
-                            confetti.start();
-                            $('#confetti-canvas').css('z-index', 900);
-                            var audio = new Audio('{{url_for("shop.static", filename="audio/achievement.wav")}}');
-                            audio.volume = 0.7;
-                            audio.play();
-
-                        }
                         recordings[recIndex].verdictComment = commentField.value;
                         recordings[recIndex].hasSent = true;
                         nextAction();

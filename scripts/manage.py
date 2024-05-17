@@ -13,7 +13,6 @@ from shutil import copyfile
 from flask_script import Command, Manager
 from flask_security.utils import hash_password
 from lobe import app
-from lobe.db import get_admins, get_verifiers, get_verifiers_and_admins
 from lobe.models import (
     Collection,
     Configuration,
@@ -23,10 +22,6 @@ from lobe.models import (
     Session,
     Token,
     User,
-    VerifierIcon,
-    VerifierProgression,
-    VerifierQuote,
-    VerifierTitle,
     db,
 )
 from lobe.tools.analyze import load_sample, signal_is_too_high, signal_is_too_low
@@ -494,19 +489,6 @@ def fix_verified_status():
 
 
 @manager.command
-def add_progression_to_verifiers():
-    verifiers = get_verifiers()
-    admins = get_admins()
-    for verifier in verifiers + admins:
-        if verifier.progression_id is None:
-            progression = VerifierProgression()
-            db.session.add(progression)
-            db.session.flush()
-            verifier.progression_id = progression.id
-        db.session.commit()
-
-
-@manager.command
 def add_mos_dummy_voice_ids():
     mos_instances = MosInstance.query.all()
     for m in mos_instances:
@@ -514,178 +496,12 @@ def add_mos_dummy_voice_ids():
             m.voice_idx = randrange(4)
         db.session.commit()
 
-
-@manager.command
-def set_rarity():
-    icons = VerifierIcon.query.all()
-    titles = VerifierTitle.query.all()
-    quotes = VerifierQuote.query.all()
-    items = icons + titles + quotes
-    for item in items:
-        if item.rarity is None:
-            item.rarity = 0
-    db.session.commit()
-
-
-@manager.command
-def initialize_verifiers():
-    add_progression_to_verifiers()
-    verifiers = get_verifiers_and_admins()
-    for verifier in verifiers:
-        progression = verifier.progression
-        if progression.verification_level is None:
-            progression.verification_level = 0
-        if progression.spy_level is None:
-            progression.spy_level = 0
-        if progression.streak_level is None:
-            progression.streak_level = 0
-        if progression.num_verifies is None:
-            progression.num_verifies = 0
-        if progression.num_session_verifies is None:
-            progression.num_session_verifies = 0
-        if progression.num_invalid is None:
-            progression.num_invalid = 0
-        if progression.num_streak_days is None:
-            progression.num_streak_days = 0
-        if progression.lobe_coins is None:
-            progression.lobe_coins = 0
-        if progression.experience is None:
-            progression.experience = 0
-        if progression.weekly_verifies is None:
-            progression.weekly_verifies = 0
-        if progression.last_spin is None:
-            progression.last_spin = db.func.current_timestamp()
-        if progression.fire_sale is None:
-            progression.fire_sale = False
-        if progression.fire_sale_discount is None:
-            progression.fire_sale_discount = 0.0
-    db.session.commit()
-
-
-@manager.command
-def give_coins():
-    verifiers = get_verifiers()
-    print("Select a verifier id from the ones below:")
-    for verifier in verifiers:
-        print(f"{verifier.name} - [{verifier.id}]")
-    user_id = int(input("user id: "))
-    coins = int(input("amount: "))
-    user = User.query.get(user_id)
-    progression = user.progression
-    progression.lobe_coins += coins
-    db.session.commit()
-
-
-@manager.command
-def give_all_coins():
-    verifiers = get_verifiers()
-    coins = int(input("amount: "))
-    for verifier in verifiers:
-        progression = verifier.progression
-        progression.lobe_coins += coins
-        db.session.commit()
-
-
-@manager.command
-def give_experience():
-    verifiers = get_verifiers()
-    print("Select a verifier id from the ones below:")
-    for verifier in verifiers:
-        print(f"{verifier.name} - [{verifier.id}]")
-    user_id = int(input("user id: "))
-    experience = int(input("amount: "))
-    user = User.query.get(user_id)
-    progression = user.progression
-    progression.experience += experience
-    db.session.commit()
-
-
-@manager.command
-def delta_balance():
-    verifiers = get_verifiers()
-    print("Select a verifier id from the ones below:")
-    for verifier in verifiers:
-        print(f"{verifier.name} - [{verifier.id}]")
-    user_id = int(input("user id: "))
-    user = User.query.get(user_id)
-
-    coins = int(input("coin amount: "))
-    experience = int(input("exp amount: "))
-    progression = user.progression
-    progression.lobe_coins += coins
-    progression.experience += experience
-
-    db.session.commit()
-
-
-@manager.command
-def reset_weekly_challenge():
-    verifiers = get_verifiers()
-    best_verifier = sorted(verifiers, key=lambda v: -v.progression.weekly_verifies)[0]
-
-    # check for price and award
-    coin_price, experience_price = 0, 0
-    weekly_verifies = sum([v.progression.weekly_verifies for v in verifiers])
-    weekly_params = app.config["ECONOMY"]["weekly_challenge"]
-    weekly_goal = weekly_params["goal"]
-    if weekly_verifies > weekly_goal:
-        coin_price = weekly_params["coin_reward"]
-        experience_price = weekly_params["experience_reward"]
-        extra = int((weekly_verifies - weekly_goal) / weekly_params["extra_interval"])
-        coin_price += extra * weekly_params["extra_coin_reward"]
-        experience_price += extra * weekly_params["extra_experience_reward"]
-
-    # give prices and reset counters
-    for verifier in verifiers:
-        v_coin_price, v_experience_price = coin_price, experience_price
-        if verifier.id == best_verifier.id:
-            v_coin_price += weekly_params["best_coin_reward"]
-            v_experience_price += weekly_params["best_experience_reward"]
-
-        progression = verifier.progression
-        progression.weekly_verifies = 0
-        progression.lobe_coins += v_coin_price
-        progression.experience += v_experience_price
-        progression.weekly_coin_price = v_coin_price
-        progression.weekly_experience_price = v_experience_price
-        progression.has_seen_weekly_prices = False
-
-    db.session.commit()
-
-
 class AddColumnDefaults(Command):
     def run(self):
         users = User.query.filter(User.uuid is None).all()
         for u in users:
             u.uuid = str(uuid.uuid4())
         db.session.commit()
-
-
-@manager.command
-def set_firesale():
-    do_fire_sale = bool(int(input("Do 1 for firesale, 0 to deactivate: ")))
-    if do_fire_sale:
-        fire_sale_discount = float(input("Select discount, e.g. 0.3 for 30 percent off: "))
-    else:
-        fire_sale_discount = 0.0
-
-    verifiers = get_verifiers()
-    for verifier in verifiers:
-        progression = verifier.progression
-        progression.fire_sale = do_fire_sale
-        progression.fire_sale_discount = fire_sale_discount
-
-    db.session.commit()
-
-
-@manager.command
-def respin():
-    verifiers = get_verifiers()
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-    for verifier in verifiers:
-        progression = verifier.progression
-        progression.last_spin = yesterday
-    db.session.commit()
 
 
 @manager.command

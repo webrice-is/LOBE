@@ -9,7 +9,6 @@ from flask_security.utils import hash_password
 from sqlalchemy import or_
 
 from lobe.database_functions import (
-    add_progression_on_user,
     resolve_order,
     sessions_day_info,
 )
@@ -118,7 +117,6 @@ def user_toggle_admin(id):
     else:
         app.user_datastore.add_role_to_user(ds_user, "admin")
         app.user_datastore.remove_role_from_user(ds_user, "Notandi")
-        add_progression_on_user(ds_user)
         flash("Notandi er nú vefstjóri", category="success")
     db.session.commit()
     return redirect(url_for("user.user_detail", id=id))
@@ -130,7 +128,6 @@ def user_toggle_admin(id):
 def user_make_verifier(id):
     ds_user = app.user_datastore.get_user(id)
     app.user_datastore.add_role_to_user(ds_user, "Greinir")
-    add_progression_on_user(ds_user)
     flash("Notandi er nú greinandi", category="success")
     db.session.commit()
     return redirect(url_for("user.user_detail", id=id))
@@ -180,7 +177,6 @@ def verifier_create():
                 roles=["Greinir"],
             )
             form.populate_obj(new_user)
-            add_progression_on_user(new_user)
 
             flash("Nýr greinir var búinn til", category="success")
             return redirect(url_for("user.user_list"))

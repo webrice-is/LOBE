@@ -4,6 +4,7 @@ import os
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask
+from flask_babel import Babel
 from flask_executor import Executor
 from flask_migrate import Migrate
 from flask_security import Security, SQLAlchemyUserDatastore
@@ -56,25 +57,22 @@ def create_app():
     from lobe.views.application import application
     from lobe.views.collection import collection
     from lobe.views.configuration import configuration
-    from lobe.views.feed import feed
     from lobe.views.main import main
     from lobe.views.mos import mos
     from lobe.views.recording import recording
     from lobe.views.session import session
-    from lobe.views.shop import shop
     from lobe.views.token import token
     from lobe.views.user import user
     from lobe.views.verification import verification
 
     # We need to set the instance path to the location of the config file
     app = Flask(__name__, instance_path=os.environ.get("FLASK_INSTANCE_PATH"), instance_relative_config=True)
-    app.logger.setLevel(logging.DEBUG)
-
     app.config.from_pyfile("config.py")
+    add_app_config(app)
+    app.logger.setLevel(logging.DEBUG)
+    app.logger.addHandler(create_logger(app.config["LOG_PATH"]))
 
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
-
-    app.logger.addHandler(create_logger(app.config["LOG_PATH"]))
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -99,8 +97,6 @@ def create_app():
     app.register_blueprint(user)
     app.register_blueprint(application)
     app.register_blueprint(configuration)
-    app.register_blueprint(shop)
-    app.register_blueprint(feed)
     app.register_blueprint(mos)
 
     executor.init_app(app)
