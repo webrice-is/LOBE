@@ -9,6 +9,16 @@ from lobe.models import Collection, Configuration, db
 
 configuration = Blueprint("configuration", __name__, template_folder="templates")
 
+@configuration.cli.command("add_default")
+def create_default_conf():
+    main_conf = Configuration.query.filter_by(name="Aðalstilling").count()
+    if main_conf:
+        print("Configuration already exists.")
+        return
+    conf = Configuration()
+    conf.name = "Aðalstilling"
+    db.session.add(conf)
+    db.session.commit()
 
 @configuration.route("/confs/")
 @login_required

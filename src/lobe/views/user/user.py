@@ -1,5 +1,6 @@
 import traceback
 import uuid
+import getpass
 
 from flask import Blueprint
 from flask import current_app as app
@@ -21,6 +22,73 @@ from lobe.forms import (
 from lobe.models import Recording, Role, Session, User, db
 
 user = Blueprint("user", __name__, template_folder="templates")
+
+
+def get_pw(confirm=True):
+    password = getpass.getpass("Password: ")
+    if confirm:
+        password_confirm = getpass.getpass("Repeat password: ")
+        while password != password_confirm:
+            print("Passwords must match")
+            password = getpass.getpass("Password: ")
+            password_confirm = getpass.getpass("Repeat password: ")
+    return password
+
+
+@user.cli.command('create')
+def create_user():
+    """Create a new user."""
+    email = input("Email: ")
+    name = input("Name: ")
+    password = get_pw()
+
+    roles = Role.query.all()
+    selected_roles = []
+    if len(roles) > 0:
+        role_select = None
+        while role_select not in [r.id for r in roles]:
+            print(role_select, [r.id for r in roles])
+            print("Select a role")
+            role_select = int(
+                input("".join(["[{}] - {} : {}\n".format(role.id, role.name, role.description) for role in roles]))
+            )
+        selected_roles.append(Role.query.get(role_select).name)
+    with app.app_context():
+        try:
+            app.user_datastore.create_user(
+                email=email, password=hash_password(password), name=name, roles=selected_roles, uuid=uuid.uuid4()
+            )
+            db.session.commit()
+            print("User with email {} has been created".format(email))
+        except IntegrityError as e:
+            print(e)
+
+@user.cli.command('create_roles')
+def create_roles():
+    roles = [
+        {
+            "name": "admin",
+            "description": "Umsjónarhlutverk með aðgang að notendastillingum",
+        },
+        {
+            "name": "Notandi",
+            "description": "Venjulegur notandi með grunn aðgang",
+        },
+        {
+            "name": "Greinir",
+            "description": "Greinir með takmarkað aðgengi",
+        },
+    ]
+    existing_roles = [role.name for role in Role.query.all()]
+    for i, r in enumerate(roles):
+        if r["name"] not in existing_roles:
+            role = Role()
+            role.name = r["name"]
+            role.description = r["description"]
+            db.session.add(role)
+            print("Creating role:", r["name"])
+
+    db.session.commit()
 
 
 @user.route("/users/")
