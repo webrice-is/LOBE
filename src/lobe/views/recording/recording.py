@@ -49,7 +49,7 @@ def recording_list():
         recordings = (
             db.session.query(Recording)
             .filter_by(marked_as_bad=True)
-            .paginate(page, per_page=app.config["RECORDING_PAGINATION"])
+            .paginate(page=page, per_page=app.config["RECORDING_PAGINATION"])
         )
     else:
         recordings = Recording.query.order_by(
@@ -58,7 +58,7 @@ def recording_list():
                 request.args.get("sort_by", default="created_at"),
                 order=request.args.get("order", default="desc"),
             )
-        ).paginate(page, per_page=app.config["RECORDING_PAGINATION"])
+        ).paginate(page=page, per_page=app.config["RECORDING_PAGINATION"])
 
     return render_template(
         "recording_list.jinja",

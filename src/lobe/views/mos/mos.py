@@ -58,7 +58,7 @@ def mos_list():
             request.args.get("sort_by", default="created_at"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, per_page=app.config["MOS_PAGINATION"])
+    ).paginate(page=page, per_page=app.config["MOS_PAGINATION"])
     collections = Collection.query.order_by(
         resolve_order(
             Collection,
@@ -84,7 +84,7 @@ def mos_collection(id):
                 order=request.args.get("order", default="desc"),
             )
         )
-        .paginate(page, per_page=app.config["MOS_PAGINATION"])
+        .paginate(page=page, per_page=app.config["MOS_PAGINATION"])
     )
     return render_template(
         "mos_collection_list.jinja",
@@ -109,7 +109,7 @@ def mos_collection_none():
                 order=request.args.get("order", default="desc"),
             )
         )
-        .paginate(page, per_page=app.config["MOS_PAGINATION"])
+        .paginate(page=page, per_page=app.config["MOS_PAGINATION"])
     )
     return render_template(
         "mos_no_collection_list.jinja",

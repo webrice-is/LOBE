@@ -23,7 +23,7 @@ def rec_session_list():
             request.args.get("sort_by", default="created_at"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, per_page=app.config["SESSION_PAGINATION"])
+    ).paginate(page=page, per_page=app.config["SESSION_PAGINATION"])
     isPriority = False
     return render_template(
         "session_list.jinja",
@@ -44,7 +44,7 @@ def priority_session_list():
             request.args.get("sort_by", default="created_at"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, per_page=app.config["SESSION_PAGINATION"])
+    ).paginate(page=page, per_page=app.config["SESSION_PAGINATION"])
     isPriority = True
     return render_template(
         "session_list.jinja",

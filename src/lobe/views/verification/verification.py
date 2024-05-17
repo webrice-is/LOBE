@@ -225,7 +225,7 @@ def verification_list():
             request.args.get("sort_by", default="created_at"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, per_page=app.config["VERIFICATION_PAGINATION"])
+    ).paginate(page=page, per_page=app.config["VERIFICATION_PAGINATION"])
 
     return render_template("verification_list.jinja", verifications=verifications, section="verification")
 

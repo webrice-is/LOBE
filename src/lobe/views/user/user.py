@@ -34,7 +34,7 @@ def user_list():
             request.args.get("sort_by", default="name"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, app.config["USER_PAGINATION"])
+    ).paginate(page=page, per_page=app.config["USER_PAGINATION"])
     return render_template("user_list.jinja", users=users, section="user")
 
 
@@ -53,7 +53,7 @@ def user_detail(id):
                 order=request.args.get("order", default="desc"),
             )
         )
-        .paginate(page, app.config["RECORDING_PAGINATION"])
+        .paginate(page=page, per_page=app.config["RECORDING_PAGINATION"])
     )
     return render_template("user.jinja", user=user, recordings=recordings, section="user")
 

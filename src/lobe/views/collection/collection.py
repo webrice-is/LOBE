@@ -113,7 +113,7 @@ def collection_list():
             request.args.get("sort_by", default="name"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, per_page=app.config["COLLECTION_PAGINATION"])
+    ).paginate(page=page, per_page=app.config["COLLECTION_PAGINATION"])
     return render_template(
         "collection_list.jinja",
         form=form,
@@ -130,7 +130,7 @@ def collection_zip_list():
     collections = (
         db.session.query(Collection)
         .filter_by(has_zip=True)
-        .paginate(page, per_page=app.config["COLLECTION_PAGINATION"])
+        .paginate(page=page, per_page=app.config["COLLECTION_PAGINATION"])
     )
     return render_template("zip_list.jinja", zips=collections, section="collection")
 
@@ -172,7 +172,7 @@ def collection_detail(id):
                 order=request.args.get("order", default="desc"),
             )
         )
-        .paginate(int(request.args.get("page", 1)), per_page=app.config["TOKEN_PAGINATION"])
+        .paginate(page=int(request.args.get("page", 1)), per_page=app.config["TOKEN_PAGINATION"])
     )
 
     return render_template(

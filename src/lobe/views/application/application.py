@@ -22,7 +22,7 @@ def applications():
             request.args.get("sort_by", default="created_at"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, per_page=50)
+    ).paginate(page=page, per_page=50)
     return render_template("application_list.jinja", applications=applications, section="application")
 
 
@@ -41,7 +41,7 @@ def application_detail(id):
                 order=request.args.get("order", default="desc"),
             )
         )
-        .paginate(page, app.config["RECORDING_PAGINATION"])
+        .paginate(page=page, per_page=app.config["RECORDING_PAGINATION"])
     )
     return render_template(
         "application.jinja",
@@ -85,7 +85,7 @@ def postings():
 
     return render_template(
         "posting_list.jinja",
-        postings=postings.paginate(page, per_page=20),
+        postings=postings.paginate(page=page, per_page=20),
         info=info,
         section="posting",
     )

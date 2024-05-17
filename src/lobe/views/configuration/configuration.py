@@ -21,7 +21,7 @@ def conf_list():
             request.args.get("sort_by", default="created_at"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, per_page=app.config["CONF_PAGINATION"])
+    ).paginate(page=page, per_page=app.config["CONF_PAGINATION"])
 
     return render_template("conf_list.jinja", confs=confs, section="other")
 

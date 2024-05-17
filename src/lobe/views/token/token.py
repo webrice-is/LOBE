@@ -36,7 +36,7 @@ def token_list():
             request.args.get("sort_by", default="created_at"),
             order=request.args.get("order", default="desc"),
         )
-    ).paginate(page, per_page=app.config["TOKEN_PAGINATION"])
+    ).paginate(page=page, per_page=app.config["TOKEN_PAGINATION"])
 
     return render_template("token_list.jinja", tokens=tokens, section="token")
 
