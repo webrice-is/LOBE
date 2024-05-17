@@ -17,6 +17,7 @@ from wtforms import (
 from wtforms.validators import InputRequired, NumberRange
 from wtforms_alchemy import model_form_factory
 from wtforms_alchemy.fields import QuerySelectField
+from markupsafe import Markup
 
 from lobe import db
 from lobe.models import (
@@ -362,25 +363,25 @@ class MosDetailForm(FlaskForm):
 class ApplicationForm(FlaskForm):
     name = StringField("Nafn", [InputRequired()])
     sex = SelectField(
-        "Kyn",
-        [InputRequired()],
+        label="Kyn",
+        validators=[InputRequired()],
         choices=[("Kona", "Kona"), ("Karl", "Karl"), ("Annað", "Annað")],
     )
     age = IntegerField("Aldur", [InputRequired(), NumberRange(min=10, max=120)])
-    voice = SelectField(
-        "Rödd",
-        [InputRequired()],
-        choices=[
-            ("sopran", "Sópran"),
-            ("alt", "Alt"),
-            ("tenor", "Tenór"),
-            ("bassi", "Bassi"),
-        ],
-    )
+    # voice = SelectField(
+    #     label="Rödd",
+    #     validators=[InputRequired()],
+    #     choices=[
+    #         ("sopran", "Sópran"),
+    #         ("alt", "Alt"),
+    #         ("tenor", "Tenór"),
+    #         ("bassi", "Bassi"),
+    #     ],
+    # )
     email = EmailField("Netfang", [InputRequired()])
     phone = StringField("Sími")
     terms_agreement = BooleanField(
-        "Ég samþykki <a href='/tos/' target='_blank'>skilmála" + "og gagnastefnu LVL</a>",
+        label=Markup("Ég samþykki <a href='/tos/' target='_blank'>skilmála og gagnastefnu LVL</a>"),
         validators=[InputRequired()],
     )
 
