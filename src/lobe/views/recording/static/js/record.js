@@ -133,23 +133,23 @@ skipButton.addEventListener("click", skipAction);
 downloadButton.addEventListener("click", downloadAction);
 finishButton.addEventListener("click", finishAction);
 cutButton.addEventListener("click", cutAction);
-$(window).keyup(function (e) {
+$(window).on("keyup", function (e) {
   if (
     e.key === " " ||
     e.key === "Spacebar" ||
-    e.keyCode === 38 ||
-    e.keyCode === 87
+    e.key === "ArrowUp" ||
+    e.key === "w"
   ) {
     // spacebar, arrow-up or "w"
     e.preventDefault();
     recordAction();
-  } else if (e.keyCode === 37 || e.keyCode === 65) {
+  } else if (e.key === "ArrowLeft" || e.key === "a") {
     // arrow-left or "a"
     prevAction();
-  } else if ((e.keyCode === 39 || e.keyCode === 68) && !nextButton.disabled) {
+  } else if ((e.key === "ArrowRight" || e.key === "d") && !nextButton.disabled) {
     // arrow-right or "d"
     nextAction();
-  } else if (e.keyCode === 40 || e.keyCode === 83) {
+  } else if (e.key === "ArrowDown" || e.key === "d") {
     // arrow-down or "s"
     playAction();
   }
