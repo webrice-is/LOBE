@@ -44,10 +44,9 @@ let meter;
 // https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints
 const mediaConstraints = {
   audio: {
-    sampleRate: 48000, // Not supported in Firefox
     sampleSize: 16, // Not supported in Firefox
     channelCount: 1,
-    echoCancellation: true,
+    echoCancellation: false,
     autoGainControl: true, // not supported on Safari, desktop and mobile
     noiseSuppression: true, // not supported on Safari, desktop and mobile
     latency: 0,
@@ -58,7 +57,6 @@ const mediaRecorderConfig = {
   type: "audio",
   mimeType: "audio/wav",
   recorderType: StereoAudioRecorder,
-  sampleRate: mediaConstraints.audio.sampleRate,
   bufferSize: 4096,
   numberOfAudioChannels: mediaConstraints.audio.channelCount,
   disableLogs: true,
@@ -124,25 +122,6 @@ var meterCanvas = document.querySelector("#meter");
 var canvasContext = meterCanvas.getContext("2d");
 var rafID = null;
 
-// Audio configuration
-// We only support mono audio, not video
-const mediaConstraints = {
-  audio: {
-    sampleRate: 48000,
-    sampleSize: 16,
-    numChannels: 1,
-    echoCancellation: true,
-  },
-};
-// RecorderRTC configuration
-const mediaRecorderConfig = {
-  type: "audio",
-  mimeType: "audio/wav",
-  recorderType: StereoAudioRecorder,
-  sampleRate: 48000,
-  bufferSize: 4096,
-  numberOfAudioChannels: 1,
-};
 
 // ------------- register listeners ------------
 nextButton.addEventListener("click", nextAction);
