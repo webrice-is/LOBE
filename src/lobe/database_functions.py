@@ -562,6 +562,7 @@ def save_MOS_ratings(form, files):
 
 
 def save_recording_session(form: ImmutableMultiDict, files: ImmutableMultiDict[str, FileStorage]) -> int | None:
+    duration = float(form["duration"])
     user_id = int(form["user_id"])
     manager_id = int(form["manager_id"])
     collection_id = int(form["collection_id"])
