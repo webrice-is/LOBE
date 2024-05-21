@@ -177,7 +177,7 @@ $(window).keyup(function (e) {
 });
 
 // ---------------- Actions --------------------
-function nextAction() {
+async function nextAction() {
   // Increment the sentence index and update the UI
   if (tokenIndex < numTokens - 1) {
     tokenIndex += 1;
@@ -187,7 +187,7 @@ function nextAction() {
   }
 }
 
-function prevAction() {
+async function prevAction() {
   // Decrement the sentence index and update the UI
   if (tokenIndex > 0) {
     tokenIndex -= 1;
@@ -198,26 +198,23 @@ function prevAction() {
 async function recordAction() {
   if (!(await areRecording())) {
     if ("recording" in tokens[tokenIndex]) {
-      await deleteAction();
+      deleteAction();
     }
-    tokenCard.style.borderWidth = "2px";
-    tokenCard.classList.add("border-warning");
-    await delay(recordingDelay);
     await startRecording();
-    await delay(recordingDelay);
-    tokenCard.classList.remove("border-warning");
+    tokenCard.style.borderWidth = "2px";
     tokenCard.classList.add("border-success");
     skipButton.disabled = true;
     nextButton.disabled = true;
     prevButton.disabled = true;
     recordButtonText.innerHTML = "Stoppa";
   } else {
-    tokenCard.classList.remove("border-success");
-    tokenCard.classList.add("border-warning");
-    await delay(recordingDelay);
     await stopRecording();
+    tokenCard.classList.remove("border-success");
     tokenCard.style.borderWidth = "1px";
-    tokenCard.classList.remove("border-warning");
+    recordButtonText.innerHTML = "Byrja";
+    skipButton.disabled = false;
+    nextButton.disabled = false;
+    prevButton.disabled = false;
   }
 }
 
@@ -587,7 +584,7 @@ function setAnalysisUI(tokenIndex) {
 async function setMicUI(recording, stream) {
   // if we are recording we show the mic card
   if (recording) {
-    clonedStream = stream.clone();
+    let clonedStream = stream.clone();
     audioCtx = new AudioContext(clonedStream);
     meter = createMeter(audioCtx, clonedStream);
     meterDrawLoop();
