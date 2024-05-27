@@ -755,14 +755,7 @@ class Recording(BaseModel, db.Model):
         log.info(f"Saving file to {self.path}")
         log.info(f"File name: {file_obj.filename}")
         log.info(f"File content-type: {file_obj.content_type}")
-        file_obj.save(self.path)
-
-    def _save_wav_to_disk(self):
-        # there is no ffmpeg on Eyra
-        if os.getenv("SEMI_PROD", False) or os.getenv("FLASK_ENV", "development") == "production":
-            subprocess.call(["avconv", "-i", self.path, self.wav_path])
-        else:
-            subprocess.call(["ffmpeg", "-i", self.path, self.wav_path])
+        file_obj.save(self.wav_path)
 
     def add_file_obj(self, obj: FileStorage, recorder_settings):
         """
@@ -773,8 +766,8 @@ class Recording(BaseModel, db.Model):
         """
         self._set_path()
         self.save_to_disk(obj)
-        self._save_wav_to_disk()
         self._set_wave_params(recorder_settings)
+        log.info(f"Done setting wave params")
 
     def _set_path(self):
         self.file_id = "{}_r{:09d}_t{:09d}".format(os.path.splitext(self.original_fname)[0], self.id, self.token_id)
