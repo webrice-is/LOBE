@@ -101,6 +101,7 @@ const playButton = document.querySelector("button#play");
 const skipButton = document.querySelector("button#skip");
 const downloadButton = document.querySelector("button#download");
 const finishButton = document.querySelector("button#send");
+const confirmButton = document.querySelector("#confirmSessionModalConfirmButton");
 const finishButtonIcon = $("#finishButtonIcon");
 const cutButton = document.querySelector("button#cut");
 const cutButtonIcon = document.querySelector("#cutButtonIcon");
@@ -131,7 +132,10 @@ playButton.addEventListener("click", playAction);
 deleteButton.addEventListener("click", deleteAction);
 skipButton.addEventListener("click", skipAction);
 downloadButton.addEventListener("click", downloadAction);
-finishButton.addEventListener("click", finishAction);
+finishButton.addEventListener("click", function () {
+  $("#confirmSessionModal").modal("show");
+});
+confirmButton.addEventListener("click", finishAction);
 cutButton.addEventListener("click", cutAction);
 $(window).on("keyup", function (e) {
   if (
