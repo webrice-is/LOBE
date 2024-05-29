@@ -206,7 +206,7 @@ def create_posting():
                 data={
                     "name": f"{posting.name}",
                     "configuration_id": app.config["DEFAULT_CONFIGURATION_ID"],
-                    "sort_by": "random",
+                    "sort_by": "same",
                     "is_multi_speaker": True,
                 }
             )
