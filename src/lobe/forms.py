@@ -381,7 +381,7 @@ class ApplicationForm(FlaskForm):
     email = EmailField("Netfang", [InputRequired()])
     phone = StringField("Sími")
     terms_agreement = BooleanField(
-        label=Markup("Ég samþykki <a href='/tos/' target='_blank'>skilmála og gagnastefnu LVL</a>"),
+        label=Markup("Ég samþykki <a href='/tos_application/' target='_blank'>skilmála og gagnastefnu LVL</a>"),
         validators=[InputRequired()],
     )
 

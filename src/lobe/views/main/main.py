@@ -76,3 +76,8 @@ def not_in_chrome():
 @main.route("/tos/")
 def tos():
     return render_template("tos.jinja")
+
+
+@main.route("/tos_application/")
+def tos_application():
+    return render_template("tos_app.jinja")
