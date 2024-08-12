@@ -1,5 +1,5 @@
-export FLASK_APP=./lobe/wsgi.py
+export FLASK_APP=lobe
 export FLASK_DEBUG=1
 export FLASK_ENV=development
-env/bin/flask run
+venv/bin/flask run
 

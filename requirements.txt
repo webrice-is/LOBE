@@ -1,5 +1,5 @@
 Flask~=2.2
-Flask-Executor~=0.10  # async tasks
+Flask-Executor~=1.0.0  # async tasks
 # audio processing
 librosa>=0.7.2
 numpy>=1.21.0
