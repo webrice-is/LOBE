@@ -219,7 +219,9 @@ def trim_collection(id):
 @roles_accepted("admin")
 def generate_zip(id):
     # TODO: Send some message in real-time to notify user when finished
-    executor.submit(create_collection_zip, id)
+    print("Submitting task to create zip")
+    # executor.submit(create_collection_zip, id)
+    create_collection_zip(id)
     flash("Skjalasafn verður tilbúið vonbráðar.", category="success")
     return redirect(url_for("collection.collection_detail", id=id))
 
