@@ -27,8 +27,9 @@
     {{super()}}
     <script>
         var isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+        var isiOSChrome = /CriOS/i.test(navigator.userAgent) && /iphone|ipod|ipad/i.test(navigator.userAgent);
         var secondTry = /not-in-chrome/.test(document.referrer);
-        if (!isChrome && !secondTry) {
+        if (!isChrome && !isiOSChrome && !secondTry) {
             window.location = "{{url_for('main.not_in_chrome')}}";
         }
         </script>
