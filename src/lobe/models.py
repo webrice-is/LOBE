@@ -728,7 +728,7 @@ class Recording(BaseModel, db.Model):
         return url_for("recording.toggle_recording_bad_ajax", id=self.id)
 
     def get_directory(self):
-        return os.path.dirname(self.path)
+        return os.path.dirname(self.wav_path)
 
     def get_path(self):
         return self.path
@@ -752,7 +752,7 @@ class Recording(BaseModel, db.Model):
         since we need self.id
         """
         file_obj.filename = self.fname
-        log.info(f"Saving file to {self.path}")
+        log.info(f"Saving file to {self.wav_path}")
         log.info(f"File name: {file_obj.filename}")
         log.info(f"File content-type: {file_obj.content_type}")
         file_obj.save(self.wav_path)

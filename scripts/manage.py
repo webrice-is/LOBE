@@ -245,13 +245,13 @@ def download_collection(collection_id, out_dir):
         for token in tqdm(dl_tokens):
             copyfile(token.get_path(), os.path.join(out_dir, "text/{}".format(token.get_fname())))
             for recording in token.recordings:
-                if recording.get_path() is not None:
+                if recording.get_wav_path() is not None:
                     user_name = recording.get_user().name
                     user_ids.add(recording.user_id)
                     if not os.path.exists(os.path.join(out_dir, "audio", user_name)):
                         os.makedirs(os.path.join(out_dir, "audio", user_name))
                     copyfile(
-                        recording.get_path(),
+                        recording.get_wav_path(),
                         os.path.join(out_dir, "audio/{}/{}".format(user_name, recording.get_fname())),
                     )
                     recording_info[recording.id] = {
